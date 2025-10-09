@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import axios from 'axios';
+import API_BASE_URL from '../config/api';
 
 const AuthContext = createContext();
 
@@ -27,7 +28,7 @@ export const AuthProvider = ({ children }) => {
 
   const fetchUserProfile = async () => {
     try {
-      const response = await axios.get('http://localhost:5001/api/users/profile');
+      const response = await axios.get(`${API_BASE_URL}/api/users/profile`);
       setUser(response.data);
     } catch (error) {
       localStorage.removeItem('token');
@@ -39,7 +40,7 @@ export const AuthProvider = ({ children }) => {
 
   const login = async (email, password) => {
     try {
-      const response = await axios.post('http://localhost:5001/api/auth/login', {
+      const response = await axios.post(`${API_BASE_URL}/api/auth/login`, {
         email,
         password
       });
@@ -70,7 +71,7 @@ export const AuthProvider = ({ children }) => {
 
   const register = async (userData) => {
     try {
-      const response = await axios.post('http://localhost:5001/api/auth/register', userData);
+      const response = await axios.post(`${API_BASE_URL}/api/auth/register`, userData);
       
       const { token, user } = response.data;
       localStorage.setItem('token', token);
@@ -99,7 +100,7 @@ export const AuthProvider = ({ children }) => {
 
   const refreshUserProfile = async () => {
     try {
-      const response = await axios.get('http://localhost:5001/api/users/profile');
+      const response = await axios.get(`${API_BASE_URL}/api/users/profile`);
       setUser(response.data);
       return { success: true };
     } catch (error) {
@@ -123,7 +124,7 @@ export const AuthProvider = ({ children }) => {
 
   const updateProfile = async (profileData) => {
     try {
-      const response = await axios.put('http://localhost:5001/api/users/profile', profileData);
+      const response = await axios.put(`${API_BASE_URL}/api/users/profile`, profileData);
       setUser(prev => ({ ...prev, ...response.data }));
       return { success: true };
     } catch (error) {

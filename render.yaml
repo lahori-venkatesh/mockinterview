@@ -1,0 +1,26 @@
+services:
+  - type: web
+    name: mockinterview-backend
+    env: node
+    region: oregon
+    plan: free
+    buildCommand: cd server && npm install
+    startCommand: cd server && npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+      - key: MONGODB_URI
+        fromDatabase:
+          name: mockinterview-db
+          property: connectionString
+      - key: JWT_SECRET
+        generateValue: true
+      - key: CORS_ORIGIN
+        value: https://your-frontend-app.vercel.app
+
+databases:
+  - name: mockinterview-db
+    databaseName: mockinterview
+    user: mockinterview_user

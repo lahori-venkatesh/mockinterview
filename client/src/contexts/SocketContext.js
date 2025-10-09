@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import io from 'socket.io-client';
 import { useAuth } from './AuthContext';
+import API_BASE_URL from '../config/api';
 
 const SocketContext = createContext();
 
@@ -18,7 +19,7 @@ export const SocketProvider = ({ children }) => {
 
   useEffect(() => {
     if (user) {
-      const newSocket = io('http://localhost:5001');
+      const newSocket = io(API_BASE_URL);
       setSocket(newSocket);
 
       // Emit user online status
