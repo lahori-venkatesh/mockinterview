@@ -15,14 +15,21 @@ const app = express();
 const server = http.createServer(app);
 const io = socketIo(server, {
   cors: {
-    origin: "http://localhost:3000",
+    origin: [
+      "http://localhost:3000",
+      process.env.CORS_ORIGIN || "https://your-frontend.vercel.app"
+    ],
     methods: ["GET", "POST"]
   }
 });
 
 // Middleware
 app.use(cors({
-  origin: ['http://localhost:3000', 'http://127.0.0.1:3000'],
+  origin: [
+    'http://localhost:3000', 
+    'http://127.0.0.1:3000',
+    process.env.CORS_ORIGIN || 'https://your-frontend.vercel.app'
+  ],
   credentials: true
 }));
 app.use(express.json({ limit: '10mb' }));
@@ -31,15 +38,8 @@ app.use(express.urlencoded({ extended: true }));
 // Serve static files for profile pictures
 app.use('/uploads', express.static('uploads'));
 
-// Serve static files from React app (if deploying together)
-if (process.env.NODE_ENV === 'production') {
-  app.use(express.static(path.join(__dirname, '../client/build')));
-  
-  // Handle React routing, return all requests to React app
-  app.get('*', (req, res) => {
-    res.sendFile(path.join(__dirname, '../client/build', 'index.html'));
-  });
-}
+// API routes are handled above, no need to serve static files
+// Frontend is deployed separately on Vercel
 
 // Routes
 app.use('/api/auth', authRoutes);
