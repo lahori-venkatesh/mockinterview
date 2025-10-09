@@ -1,0 +1,9 @@
+{
+  "short_name": "InterviewAce",
+  "name": "InterviewAce - Technical Interview Practice Platform",
+  "icons": [],
+  "start_url": ".",
+  "display": "standalone",
+  "theme_color": "#667eea",
+  "background_color": "#ffffff"
+}
