@@ -1,0 +1,23 @@
+{
+  "name": "student-interview-platform",
+  "version": "1.0.0",
+  "description": "Student-to-student live interview platform",
+  "main": "server/index.js",
+  "scripts": {
+    "dev": "concurrently \"npm run server\" \"npm run client\"",
+    "server": "cd server && npm run dev",
+    "client": "cd client && npm start",
+    "install-all": "npm install && cd server && npm install && cd ../client && npm install",
+    "build": "cd client && npm run build",
+    "start": "cd server && npm start",
+    "test": "concurrently \"cd client && npm test -- --watchAll=false\" \"cd server && npm test\"",
+    "lint": "concurrently \"cd client && npm run lint\" \"cd server && npm run lint\"",
+    "setup-db": "cd server && node add-dummy-data.js",
+    "clean": "rm -rf node_modules client/node_modules server/node_modules",
+    "reinstall": "npm run clean && npm run install-all"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2",
+    "axios": "^1.6.2"
+  }
+}

@@ -1,0 +1,116 @@
+import React from 'react';
+import { Routes, Route, Navigate } from 'react-router-dom';
+import { useAuth } from './contexts/AuthContext';
+import Navbar from './components/Navbar';
+import LandingPage from './pages/LandingPage';
+import Login from './pages/Login';
+import Register from './pages/Register';
+import ForgotPassword from './pages/ForgotPassword';
+import ProfileSetup from './pages/ProfileSetup';
+import Dashboard from './pages/Dashboard';
+import FindMatch from './pages/FindMatch';
+import Interview from './pages/Interview';
+import Profile from './pages/Profile';
+import AccountSettings from './pages/AccountSettings';
+import History from './pages/History';
+
+function App() {
+  const { user, loading, isProfileComplete } = useAuth();
+
+  if (loading) {
+    return (
+      <div style={{ 
+        display: 'flex', 
+        justifyContent: 'center', 
+        alignItems: 'center', 
+        height: '100vh',
+        fontSize: '1.2rem'
+      }}>
+        Loading...
+      </div>
+    );
+  }
+
+  // Helper function to check if user should be redirected to profile setup
+  const shouldRedirectToProfileSetup = (user) => {
+    return user && !isProfileComplete(user);
+  };
+
+  return (
+    <div className="App">
+      {user && <Navbar />}
+      <Routes>
+        <Route 
+          path="/" 
+          element={
+            !user ? <LandingPage /> : 
+            shouldRedirectToProfileSetup(user) ? <Navigate to="/profile-setup" /> :
+            <Navigate to="/dashboard" />
+          } 
+        />
+        <Route 
+          path="/login" 
+          element={
+            !user ? <Login /> : 
+            shouldRedirectToProfileSetup(user) ? <Navigate to="/profile-setup" /> :
+            <Navigate to="/dashboard" />
+          } 
+        />
+        <Route 
+          path="/register" 
+          element={!user ? <Register /> : <Navigate to="/profile-setup" />} 
+        />
+        <Route 
+          path="/forgot-password" 
+          element={!user ? <ForgotPassword /> : <Navigate to="/dashboard" />} 
+        />
+        <Route 
+          path="/profile-setup" 
+          element={user ? <ProfileSetup /> : <Navigate to="/" />} 
+        />
+        <Route 
+          path="/dashboard" 
+          element={
+            user ? 
+            (shouldRedirectToProfileSetup(user) ? <Navigate to="/profile-setup" /> : <Dashboard />) :
+            <Navigate to="/" />
+          } 
+        />
+        <Route 
+          path="/find-match" 
+          element={
+            user ? 
+            (shouldRedirectToProfileSetup(user) ? <Navigate to="/profile-setup" /> : <FindMatch />) :
+            <Navigate to="/" />
+          } 
+        />
+        <Route 
+          path="/interview/:roomId" 
+          element={
+            user ? 
+            (shouldRedirectToProfileSetup(user) ? <Navigate to="/profile-setup" /> : <Interview />) :
+            <Navigate to="/" />
+          } 
+        />
+        <Route 
+          path="/profile" 
+          element={user ? <Profile /> : <Navigate to="/" />} 
+        />
+        <Route 
+          path="/account-settings" 
+          element={user ? <AccountSettings /> : <Navigate to="/" />} 
+        />
+        <Route 
+          path="/history" 
+          element={
+            user ? 
+            (shouldRedirectToProfileSetup(user) ? <Navigate to="/profile-setup" /> : <History />) :
+            <Navigate to="/" />
+          } 
+        />
+      </Routes>
+    </div>
+  );
+}
+
+export default App;
