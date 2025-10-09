@@ -21,12 +21,15 @@ function App() {
     return (
       <div style={{ 
         display: 'flex', 
+        flexDirection: 'column',
         justifyContent: 'center', 
         alignItems: 'center', 
         height: '100vh',
-        fontSize: '1.2rem'
+        fontSize: '1.2rem',
+        fontFamily: 'Arial, sans-serif'
       }}>
-        Loading...
+        <div>🎯 InterviewAce</div>
+        <div style={{ marginTop: '20px', fontSize: '1rem' }}>Loading...</div>
       </div>
     );
   }
