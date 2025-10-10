@@ -15,25 +15,62 @@ const app = express();
 const server = http.createServer(app);
 const io = socketIo(server, {
   cors: {
-    origin: [
-      "http://localhost:3000",
-      "https://mockinterview-bdve.onrender.com",
-      process.env.CORS_ORIGIN || "https://your-frontend.vercel.app"
-    ],
-    methods: ["GET", "POST"]
+    origin: function (origin, callback) {
+      // Allow requests with no origin
+      if (!origin) return callback(null, true);
+      
+      // If CORS_ORIGIN is set to *, allow all origins
+      if (process.env.CORS_ORIGIN === '*') {
+        return callback(null, true);
+      }
+      
+      // Otherwise, check against allowed origins
+      const allowedOrigins = [
+        "http://localhost:3000",
+        "https://mockinterview-bdve.onrender.com",
+        process.env.CORS_ORIGIN || "https://your-frontend.vercel.app"
+      ];
+      
+      if (allowedOrigins.indexOf(origin) !== -1) {
+        callback(null, true);
+      } else {
+        callback(new Error('Not allowed by CORS'));
+      }
+    },
+    methods: ["GET", "POST"],
+    credentials: true
   }
 });
 
 // Middleware
-app.use(cors({
-  origin: [
-    'http://localhost:3000', 
-    'http://127.0.0.1:3000',
-    'https://mockinterview-bdve.onrender.com',
-    process.env.CORS_ORIGIN || 'https://your-frontend.vercel.app'
-  ],
+const corsOptions = {
+  origin: function (origin, callback) {
+    // Allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) return callback(null, true);
+    
+    // If CORS_ORIGIN is set to *, allow all origins
+    if (process.env.CORS_ORIGIN === '*') {
+      return callback(null, true);
+    }
+    
+    // Otherwise, check against allowed origins
+    const allowedOrigins = [
+      'http://localhost:3000', 
+      'http://127.0.0.1:3000',
+      'https://mockinterview-bdve.onrender.com',
+      process.env.CORS_ORIGIN || 'https://your-frontend.vercel.app'
+    ];
+    
+    if (allowedOrigins.indexOf(origin) !== -1) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
   credentials: true
-}));
+};
+
+app.use(cors(corsOptions));
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 
