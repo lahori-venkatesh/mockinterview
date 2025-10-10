@@ -17,6 +17,7 @@ const io = socketIo(server, {
   cors: {
     origin: [
       "http://localhost:3000",
+      "https://mockinterview-bdve.onrender.com",
       process.env.CORS_ORIGIN || "https://your-frontend.vercel.app"
     ],
     methods: ["GET", "POST"]
@@ -28,6 +29,7 @@ app.use(cors({
   origin: [
     'http://localhost:3000', 
     'http://127.0.0.1:3000',
+    'https://mockinterview-bdve.onrender.com',
     process.env.CORS_ORIGIN || 'https://your-frontend.vercel.app'
   ],
   credentials: true
