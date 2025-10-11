@@ -101,7 +101,7 @@ const Dashboard = () => {
               <CardContent sx={{ position: 'relative', zIndex: 1 }}>
                 <Box display="flex" alignItems="center" mb={3}>
                   <Avatar 
-                    src={user?.profilePicture ? `http://localhost:5001${user.profilePicture}` : ''}
+                    src={user?.profilePicture ? `${API_BASE_URL}${user.profilePicture}` : ''}
                     sx={{ 
                       width: 70, 
                       height: 70, 
@@ -174,6 +174,21 @@ const Dashboard = () => {
                     )}
                   </Box>
                 </Box>
+
+                {user?.bio && (
+                  <Box mt={2}>
+                    <Typography variant="body2" sx={{ opacity: 0.9, mb: 1 }}>
+                      About:
+                    </Typography>
+                    <Typography variant="body2" sx={{ 
+                      opacity: 0.8,
+                      fontStyle: 'italic',
+                      lineHeight: 1.4
+                    }}>
+                      {user.bio.length > 100 ? `${user.bio.substring(0, 100)}...` : user.bio}
+                    </Typography>
+                  </Box>
+                )}
               </CardContent>
             </Card>
           </Grid>

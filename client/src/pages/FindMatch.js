@@ -41,9 +41,11 @@ const FindMatch = () => {
   const [questionDialogOpen, setQuestionDialogOpen] = useState(false);
 
   useEffect(() => {
-    fetchMatches();
+    // Set user as online first, then fetch matches
+    updateOnlineStatus(true).then(() => {
+      fetchMatches();
+    });
     fetchQuestions();
-    updateOnlineStatus(true);
   }, [genderPreference]);
 
   useEffect(() => {
@@ -111,6 +113,7 @@ const FindMatch = () => {
   const updateOnlineStatus = async (isOnline) => {
     try {
       await axios.put(`${API_BASE_URL}/api/users/status`, { isOnline });
+      console.log(`Updated online status to: ${isOnline}`);
     } catch (error) {
       console.error('Error updating online status:', error);
     }
@@ -255,6 +258,21 @@ const FindMatch = () => {
                   <Typography variant="body2" color="textSecondary" gutterBottom>
                     Total Interviews: {match.totalInterviews || 0}
                   </Typography>
+
+                  {match.bio && (
+                    <Box mt={1} mb={1}>
+                      <Typography variant="body2" color="textSecondary" gutterBottom>
+                        About:
+                      </Typography>
+                      <Typography variant="body2" sx={{ 
+                        fontStyle: 'italic',
+                        color: 'text.secondary',
+                        fontSize: '0.875rem'
+                      }}>
+                        {match.bio.length > 80 ? `${match.bio.substring(0, 80)}...` : match.bio}
+                      </Typography>
+                    </Box>
+                  )}
 
                   <Button
                     variant="contained"

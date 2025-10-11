@@ -12,30 +12,77 @@ router.get('/matches', auth, async (req, res) => {
     const currentUser = await User.findById(req.userId);
     const { genderPreference } = req.query;
 
+    console.log(`Finding matches for user: ${currentUser.name} (${currentUser.domain})`);
+
+    // Base query - exclude self and match domain
     let matchQuery = {
       _id: { $ne: req.userId },
-      domain: currentUser.domain,
-      isOnline: true
+      domain: currentUser.domain
     };
+
+    // Add online status preference (but don't make it mandatory)
+    // Users active in last 30 minutes are considered "available"
+    const recentlyActive = new Date(Date.now() - 30 * 60 * 1000);
 
     // Premium matching logic
     if (currentUser.isPremium) {
+      console.log('Premium user matching with preference:', genderPreference);
+      
       if (genderPreference === 'same') {
         matchQuery.gender = currentUser.gender;
       } else if (genderPreference === 'opposite') {
         matchQuery.gender = { $ne: currentUser.gender };
       }
-      // High rated users only for premium
-      matchQuery.rating = { $gte: 4.0 };
+      // For premium users, prefer recently active users but don't exclude others
     } else {
-      // Free users can only match with same gender
-      matchQuery.gender = currentUser.gender;
+      // Free users - more flexible matching
+      console.log('Free user matching');
+      
+      // Don't enforce strict gender matching for better user experience
+      if (genderPreference === 'same' && currentUser.gender !== 'Not specified') {
+        matchQuery.gender = currentUser.gender;
+      }
     }
 
-    const matches = await User.find(matchQuery)
-      .select('name skills domain experience rating totalInterviews profilePicture isOnline lastActive')
+    console.log('Match query:', matchQuery);
+
+    // First try to find recently active users
+    let matches = await User.find({
+      ...matchQuery,
+      $or: [
+        { isOnline: true },
+        { lastActive: { $gte: recentlyActive } }
+      ]
+    })
+      .select('name skills domain experience rating totalInterviews profilePicture isOnline lastActive bio')
       .limit(10)
-      .sort({ isOnline: -1, rating: -1, totalInterviews: -1 });
+      .sort({ isOnline: -1, lastActive: -1, rating: -1 });
+
+    // If no recently active matches, find any users with same domain
+    if (matches.length === 0) {
+      console.log('No recently active matches, searching all users with same domain');
+      matches = await User.find(matchQuery)
+        .select('name skills domain experience rating totalInterviews profilePicture isOnline lastActive bio')
+        .limit(10)
+        .sort({ rating: -1, totalInterviews: -1 });
+    }
+
+    // If still no matches, try broader search (any domain)
+    if (matches.length === 0) {
+      console.log('No domain matches, searching all users');
+      const broadQuery = { _id: { $ne: req.userId } };
+      
+      if (currentUser.isPremium && genderPreference === 'same') {
+        broadQuery.gender = currentUser.gender;
+      }
+      
+      matches = await User.find(broadQuery)
+        .select('name skills domain experience rating totalInterviews profilePicture isOnline lastActive bio')
+        .limit(5)
+        .sort({ rating: -1, totalInterviews: -1 });
+    }
+
+    console.log(`Found ${matches.length} matches`);
 
     // Ensure rating and totalInterviews are never null
     const sanitizedMatches = matches.map(match => ({
