@@ -45,6 +45,7 @@ import Webcam from 'react-webcam';
 import Peer from 'simple-peer';
 import axios from 'axios';
 import { toast } from 'react-toastify';
+import API_BASE_URL from '../config/api';
 
 const Interview = () => {
   const { roomId } = useParams();
@@ -173,7 +174,7 @@ const Interview = () => {
 
   const joinInterview = async () => {
     try {
-      const response = await axios.post(`http://localhost:5001/api/interviews/join/${roomId}`);
+      const response = await axios.post(`${API_BASE_URL}/api/interviews/join/${roomId}`);
       setInterview(response.data);
       if (joinInterviewRoom) {
         joinInterviewRoom(roomId, 'participant');
@@ -363,7 +364,7 @@ const Interview = () => {
     try {
       const partnerId = interview?.participants.find(p => p.userId._id !== user._id)?.userId._id;
       
-      await axios.post(`http://localhost:5001/api/interviews/${roomId}/report`, {
+      await axios.post(`${API_BASE_URL}/api/interviews/${roomId}/report`, {
         reportedUserId: partnerId,
         reason: reportReason,
         timestamp: new Date()
@@ -379,7 +380,7 @@ const Interview = () => {
 
   const debugInterviewData = async () => {
     try {
-      const response = await axios.get(`http://localhost:5001/api/interviews/${roomId}/debug`);
+      const response = await axios.get(`${API_BASE_URL}/api/interviews/${roomId}/debug`);
       console.log('Debug interview data:', response.data);
     } catch (error) {
       console.error('Debug error:', error);
@@ -415,7 +416,7 @@ const Interview = () => {
         comments: feedback.comments
       });
 
-      const response = await axios.post(`http://localhost:5001/api/interviews/${roomId}/feedback`, {
+      const response = await axios.post(`${API_BASE_URL}/api/interviews/${roomId}/feedback`, {
         toUserId: partnerId,
         rating: feedback.rating,
         comments: feedback.comments
@@ -888,7 +889,7 @@ const Interview = () => {
         <DialogContent>
           <Box sx={{ textAlign: 'center', mb: 3 }}>
             <Avatar
-              src={partner?.userId.profilePicture ? `http://localhost:5001${partner.userId.profilePicture}` : ''}
+              src={partner?.userId.profilePicture ? `${API_BASE_URL}${partner.userId.profilePicture}` : ''}
               sx={{ width: 80, height: 80, mx: 'auto', mb: 2 }}
             >
               {partner?.userId.name?.charAt(0).toUpperCase()}

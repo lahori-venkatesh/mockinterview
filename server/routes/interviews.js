@@ -12,6 +12,13 @@ router.post('/create', auth, async (req, res) => {
     const { participantId, selectedQuestions, isPremium } = req.body;
     const roomId = uuidv4();
 
+    console.log('Creating interview room:', {
+      roomId,
+      interviewer: req.userId,
+      participant: participantId,
+      domain: req.body.domain
+    });
+
     const interview = new Interview({
       roomId,
       participants: [
@@ -26,12 +33,15 @@ router.post('/create', auth, async (req, res) => {
     await interview.save();
     await interview.populate('participants.userId', 'name email skills domain');
 
+    console.log('Interview room created successfully:', roomId);
+
     res.status(201).json({
       message: 'Interview room created',
       interview,
       roomId
     });
   } catch (error) {
+    console.error('Interview creation error:', error);
     res.status(500).json({ message: 'Server error', error: error.message });
   }
 });
@@ -40,12 +50,21 @@ router.post('/create', auth, async (req, res) => {
 router.post('/join/:roomId', auth, async (req, res) => {
   try {
     const { roomId } = req.params;
+    console.log(`User ${req.userId} attempting to join interview room: ${roomId}`);
+    
     const interview = await Interview.findOne({ roomId })
-      .populate('participants.userId', 'name email skills domain rating');
+      .populate('participants.userId', 'name email skills domain rating profilePicture bio');
 
     if (!interview) {
+      console.log('Interview room not found:', roomId);
       return res.status(404).json({ message: 'Interview room not found' });
     }
+
+    console.log('Interview found:', {
+      roomId: interview.roomId,
+      status: interview.status,
+      participants: interview.participants.map(p => ({ id: p.userId._id, name: p.userId.name }))
+    });
 
     // Check if user is participant
     const isParticipant = interview.participants.some(
@@ -53,6 +72,7 @@ router.post('/join/:roomId', auth, async (req, res) => {
     );
 
     if (!isParticipant) {
+      console.log('User not authorized for this interview');
       return res.status(403).json({ message: 'Not authorized to join this interview' });
     }
 
@@ -61,10 +81,12 @@ router.post('/join/:roomId', auth, async (req, res) => {
       interview.status = 'active';
       interview.startTime = new Date();
       await interview.save();
+      console.log('Interview status updated to active');
     }
 
     res.json(interview);
   } catch (error) {
+    console.error('Interview join error:', error);
     res.status(500).json({ message: 'Server error', error: error.message });
   }
 });
