@@ -8,8 +8,8 @@ const auth = require('../middleware/auth');
 // Admin middleware to check if user is admin
 const adminAuth = async (req, res, next) => {
   try {
-    const user = await User.findById(req.user.userId);
-    if (!user || user.role !== 'admin') {
+    // req.user is already populated by auth middleware
+    if (!req.user || req.user.role !== 'admin') {
       return res.status(403).json({ message: 'Access denied. Admin only.' });
     }
     next();
@@ -254,7 +254,7 @@ router.post('/reports', auth, adminAuth, async (req, res) => {
           reason, 
           description, 
           reportedAt: new Date(),
-          reportedBy: req.user.userId 
+          reportedBy: req.userId 
         } 
       } 
     });
