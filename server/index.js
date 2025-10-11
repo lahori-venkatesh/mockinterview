@@ -155,10 +155,45 @@ io.on('connection', (socket) => {
   });
 });
 
-// MongoDB connection
-mongoose.connect(process.env.MONGODB_URI)
-  .then(() => console.log('MongoDB connected'))
-  .catch(err => console.error('MongoDB connection error:', err));
+// MongoDB connection - Force student-interview database
+let mongoUri = process.env.MONGODB_URI;
+
+// Ensure we're connecting to student-interview database
+if (mongoUri && !mongoUri.includes('/student-interview')) {
+  // Replace any existing database name with student-interview
+  mongoUri = mongoUri.replace(/\/[^?]*\?/, '/student-interview?');
+  console.log('🔧 Forcing connection to student-interview database');
+}
+
+mongoose.connect(mongoUri)
+  .then(async () => {
+    const dbName = mongoose.connection.db.databaseName;
+    console.log('✅ MongoDB connected to:', dbName);
+    
+    // Verify we're in the correct database
+    if (dbName !== 'student-interview') {
+      console.log('⚠️  WARNING: Connected to', dbName, 'but expected student-interview');
+    }
+    
+    // Log collection counts for verification
+    try {
+      const User = require('./models/User');
+      const Question = require('./models/Question');
+      const Interview = require('./models/Interview');
+      
+      const userCount = await User.countDocuments();
+      const questionCount = await Question.countDocuments();
+      const interviewCount = await Interview.countDocuments();
+      
+      console.log('📊 Database contents:');
+      console.log(`   Users: ${userCount}`);
+      console.log(`   Questions: ${questionCount}`);
+      console.log(`   Interviews: ${interviewCount}`);
+    } catch (error) {
+      console.log('📊 Could not verify database contents:', error.message);
+    }
+  })
+  .catch(err => console.error('❌ MongoDB connection error:', err));
 
 // Add a basic health check route
 app.get('/api/health', (req, res) => {
