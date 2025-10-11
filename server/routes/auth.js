@@ -54,6 +54,7 @@ router.post('/register', async (req, res) => {
         gender: user.gender,
         isPremium: user.isPremium,
         rating: user.rating,
+        role: user.role || 'user',
         profileComplete: skills.length > 0 && domain && experience
       }
     });
@@ -100,7 +101,8 @@ router.post('/login', async (req, res) => {
         gender: user.gender,
         isPremium: user.isPremium,
         rating: user.rating,
-        totalInterviews: user.totalInterviews
+        totalInterviews: user.totalInterviews,
+        role: user.role || 'user'
       }
     });
   } catch (error) {
