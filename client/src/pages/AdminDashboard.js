@@ -17,7 +17,8 @@ import {
   Assessment,
   Report,
   TrendingUp,
-  School
+  School,
+  AdminPanelSettings
 } from '@mui/icons-material';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
@@ -29,6 +30,7 @@ import UserManagement from '../components/admin/UserManagement';
 import QuestionManagement from '../components/admin/QuestionManagement';
 import Analytics from '../components/admin/Analytics';
 import ReportedUsers from '../components/admin/ReportedUsers';
+import AdminManagement from '../components/admin/AdminManagement';
 
 const AdminDashboard = () => {
   const [currentTab, setCurrentTab] = useState(0);
@@ -162,6 +164,7 @@ const AdminDashboard = () => {
           <Tab label="Analytics" icon={<Assessment />} />
           <Tab label="User Management" icon={<People />} />
           <Tab label="Question Management" icon={<Quiz />} />
+          <Tab label="Admin Management" icon={<AdminPanelSettings />} />
           <Tab label="Reported Users" icon={<Report />} />
         </Tabs>
 
@@ -169,7 +172,8 @@ const AdminDashboard = () => {
           {currentTab === 0 && <Analytics analytics={analytics} />}
           {currentTab === 1 && <UserManagement />}
           {currentTab === 2 && <QuestionManagement />}
-          {currentTab === 3 && <ReportedUsers />}
+          {currentTab === 3 && <AdminManagement />}
+          {currentTab === 4 && <ReportedUsers />}
         </Box>
       </Paper>
     </Container>

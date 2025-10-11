@@ -17,7 +17,8 @@ import {
   Assessment,
   Report,
   TrendingUp,
-  School
+  School,
+  AdminPanelSettings
 } from '@mui/icons-material';
 import axios from 'axios';
 import API_BASE_URL from '../config/api';
@@ -27,6 +28,7 @@ import UserManagement from '../components/UserManagement';
 import QuestionManagement from '../components/QuestionManagement';
 import Analytics from '../components/Analytics';
 import ReportedUsers from '../components/ReportedUsers';
+import AdminManagement from '../components/AdminManagement';
 
 const Dashboard = () => {
   const [currentTab, setCurrentTab] = useState(0);
@@ -144,6 +146,7 @@ const Dashboard = () => {
           <Tab label="Analytics" icon={<Assessment />} />
           <Tab label="User Management" icon={<People />} />
           <Tab label="Question Management" icon={<Quiz />} />
+          <Tab label="Admin Management" icon={<AdminPanelSettings />} />
           <Tab label="Reported Users" icon={<Report />} />
         </Tabs>
 
@@ -151,7 +154,8 @@ const Dashboard = () => {
           {currentTab === 0 && <Analytics analytics={analytics} />}
           {currentTab === 1 && <UserManagement />}
           {currentTab === 2 && <QuestionManagement />}
-          {currentTab === 3 && <ReportedUsers />}
+          {currentTab === 3 && <AdminManagement />}
+          {currentTab === 4 && <ReportedUsers />}
         </Box>
       </Paper>
     </Container>

@@ -293,6 +293,138 @@ router.get('/reports', auth, adminAuth, async (req, res) => {
   }
 });
 
+// Get all admins
+router.get('/admins', auth, adminAuth, async (req, res) => {
+  try {
+    const admins = await User.find({ role: 'admin' })
+      .select('name email domain experience createdAt lastActive')
+      .sort({ createdAt: -1 })
+      .lean();
+
+    res.json({ admins });
+  } catch (error) {
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+});
+
+// Promote user to admin
+router.put('/promote-user/:userId', auth, adminAuth, async (req, res) => {
+  try {
+    const { userId } = req.params;
+    
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    if (user.role === 'admin') {
+      return res.status(400).json({ message: 'User is already an admin' });
+    }
+
+    user.role = 'admin';
+    user.isPremium = true; // Give admin premium access
+    await user.save();
+
+    res.json({ 
+      message: `${user.name} has been promoted to admin`,
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role
+      }
+    });
+  } catch (error) {
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+});
+
+// Demote admin to user
+router.put('/demote-admin/:userId', auth, adminAuth, async (req, res) => {
+  try {
+    const { userId } = req.params;
+    
+    // Prevent self-demotion
+    if (userId === req.userId) {
+      return res.status(400).json({ message: 'Cannot demote yourself' });
+    }
+
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    if (user.role !== 'admin') {
+      return res.status(400).json({ message: 'User is not an admin' });
+    }
+
+    user.role = 'user';
+    await user.save();
+
+    res.json({ 
+      message: `${user.name} has been demoted to regular user`,
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role
+      }
+    });
+  } catch (error) {
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+});
+
+// Create new admin user
+router.post('/create-admin', auth, adminAuth, async (req, res) => {
+  try {
+    const { name, email, password, domain, experience } = req.body;
+
+    // Validate required fields
+    if (!name || !email || !password) {
+      return res.status(400).json({ message: 'Name, email, and password are required' });
+    }
+
+    if (password.length < 6) {
+      return res.status(400).json({ message: 'Password must be at least 6 characters long' });
+    }
+
+    // Check if user already exists
+    const existingUser = await User.findOne({ email });
+    if (existingUser) {
+      return res.status(400).json({ message: 'User with this email already exists' });
+    }
+
+    // Create new admin user
+    const adminUser = new User({
+      name,
+      email,
+      password,
+      role: 'admin',
+      domain: domain || 'Full Stack',
+      experience: experience || '5+ years',
+      gender: 'Not specified',
+      skills: ['Admin', 'Management'],
+      isPremium: true
+    });
+
+    await adminUser.save();
+
+    res.status(201).json({
+      message: `Admin user ${name} created successfully`,
+      user: {
+        id: adminUser._id,
+        name: adminUser.name,
+        email: adminUser.email,
+        role: adminUser.role,
+        domain: adminUser.domain
+      }
+    });
+  } catch (error) {
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+});
+
 // Debug endpoint to check database connection
 router.get('/debug-db', auth, adminAuth, async (req, res) => {
   try {
