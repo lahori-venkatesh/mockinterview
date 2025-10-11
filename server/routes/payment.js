@@ -5,11 +5,14 @@ const crypto = require('crypto');
 const User = require('../models/User');
 const auth = require('../middleware/auth');
 
-// Initialize Razorpay
-const razorpay = new Razorpay({
-  key_id: process.env.RAZORPAY_KEY_ID,
-  key_secret: process.env.RAZORPAY_KEY_SECRET,
-});
+// Initialize Razorpay (only if credentials are provided)
+let razorpay = null;
+if (process.env.RAZORPAY_KEY_ID && process.env.RAZORPAY_KEY_SECRET) {
+  razorpay = new Razorpay({
+    key_id: process.env.RAZORPAY_KEY_ID,
+    key_secret: process.env.RAZORPAY_KEY_SECRET,
+  });
+}
 
 // Payment plans
 const PLANS = {
@@ -34,6 +37,10 @@ router.post('/create-order', auth, async (req, res) => {
     
     if (!PLANS[planType]) {
       return res.status(400).json({ message: 'Invalid plan type' });
+    }
+
+    if (!razorpay) {
+      return res.status(500).json({ message: 'Payment gateway not configured' });
     }
 
     const plan = PLANS[planType];
@@ -97,6 +104,10 @@ router.post('/verify-payment', auth, async (req, res) => {
 
     if (expectedSignature !== razorpay_signature) {
       return res.status(400).json({ message: 'Invalid payment signature' });
+    }
+
+    if (!razorpay) {
+      return res.status(500).json({ message: 'Payment gateway not configured' });
     }
 
     // Get payment details from Razorpay
