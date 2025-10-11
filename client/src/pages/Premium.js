@@ -84,7 +84,31 @@ const Premium = () => {
         planType
       });
 
-      const { orderId, amount, currency, planName } = orderResponse.data;
+      const { orderId, amount, currency, planName, isDevelopment } = orderResponse.data;
+
+      // Development mode - simulate payment
+      if (isDevelopment) {
+        try {
+          const verifyResponse = await axios.post(`${API_BASE_URL}/api/payment/verify-payment`, {
+            razorpay_order_id: orderId,
+            razorpay_payment_id: `mock_payment_${Date.now()}`,
+            razorpay_signature: 'mock_signature',
+            planType: planType,
+            isDevelopment: true
+          });
+
+          setSuccess(verifyResponse.data.message);
+          updateUser(verifyResponse.data.user);
+          setConfirmDialog({ open: false, plan: null });
+          
+          setTimeout(() => {
+            navigate('/dashboard');
+          }, 2000);
+        } catch (error) {
+          setError(error.response?.data?.message || 'Payment simulation failed');
+        }
+        return;
+      }
 
       // Razorpay options
       const options = {
