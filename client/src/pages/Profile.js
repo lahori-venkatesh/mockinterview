@@ -23,6 +23,7 @@ import { PhotoCamera, Delete } from '@mui/icons-material';
 import { useAuth } from '../contexts/AuthContext';
 import axios from 'axios';
 import { toast } from 'react-toastify';
+import API_BASE_URL from '../config/api';
 
 const DOMAINS = ['Frontend', 'Backend', 'Full Stack', 'Data Science', 'Mobile', 'DevOps', 'UI/UX'];
 const EXPERIENCE_LEVELS = ['Fresher', '0-1 years', '1-3 years', '3-5 years', '5+ years'];
@@ -65,11 +66,13 @@ const Profile = () => {
     setLoading(true);
 
     try {
-      const response = await axios.put('http://localhost:5001/api/users/profile', formData);
+      const response = await axios.put(`${API_BASE_URL}/api/users/profile`, formData);
       updateUser(response.data);
       toast.success('Profile updated successfully');
     } catch (error) {
-      toast.error('Error updating profile');
+      console.error('Profile update error:', error);
+      const errorMessage = error.response?.data?.message || 'Error updating profile';
+      toast.error(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -80,11 +83,13 @@ const Profile = () => {
     setFormData(prev => ({ ...prev, isOnline }));
     
     try {
-      await axios.put('http://localhost:5001/api/users/status', { isOnline });
+      await axios.put(`${API_BASE_URL}/api/users/status`, { isOnline });
       updateUser({ isOnline });
       toast.success(`Status updated to ${isOnline ? 'Online' : 'Offline'}`);
     } catch (error) {
-      toast.error('Error updating status');
+      console.error('Status update error:', error);
+      const errorMessage = error.response?.data?.message || 'Error updating status';
+      toast.error(errorMessage);
     }
   };
 
@@ -118,7 +123,7 @@ const Profile = () => {
       const formData = new FormData();
       formData.append('profilePicture', file);
 
-      const response = await axios.post('http://localhost:5001/api/users/upload-profile-picture', formData, {
+      const response = await axios.post(`${API_BASE_URL}/api/users/upload-profile-picture`, formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
         },
@@ -139,14 +144,16 @@ const Profile = () => {
 
   const handleRemoveImage = async () => {
     try {
-      await axios.delete('http://localhost:5001/api/users/profile-picture');
+      await axios.delete(`${API_BASE_URL}/api/users/profile-picture`);
       setProfilePicture('');
       setImagePreview('');
       updateUser({ profilePicture: '' });
       await refreshUserProfile(); // Refresh user data from server
       toast.success('Profile picture removed');
     } catch (error) {
-      toast.error('Error removing profile picture');
+      console.error('Remove image error:', error);
+      const errorMessage = error.response?.data?.message || 'Error removing profile picture';
+      toast.error(errorMessage);
     }
   };
 

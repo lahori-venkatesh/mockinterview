@@ -54,18 +54,31 @@ router.get('/matches', auth, async (req, res) => {
 router.put('/profile', auth, async (req, res) => {
   try {
     const updates = req.body;
+    console.log('Profile update request:', { userId: req.userId, updates });
+    
+    // Remove undefined/null values
+    Object.keys(updates).forEach(key => {
+      if (updates[key] === undefined || updates[key] === null) {
+        delete updates[key];
+      }
+    });
     
     // Validate required fields
-    if (updates.domain && !['Frontend', 'Backend', 'Full Stack', 'Data Science', 'Mobile', 'DevOps', 'UI/UX'].includes(updates.domain)) {
+    if (updates.domain && !['Frontend', 'Backend', 'Full Stack', 'Data Science', 'Mobile', 'DevOps', 'UI/UX', 'Not specified'].includes(updates.domain)) {
       return res.status(400).json({ message: 'Invalid domain value' });
     }
     
-    if (updates.experience && !['Fresher', '0-1 years', '1-3 years', '3-5 years', '5+ years'].includes(updates.experience)) {
+    if (updates.experience && !['Fresher', '0-1 years', '1-3 years', '3-5 years', '5+ years', 'Not specified'].includes(updates.experience)) {
       return res.status(400).json({ message: 'Invalid experience value' });
     }
     
-    if (updates.gender && !['Male', 'Female', 'Other', 'Prefer not to say'].includes(updates.gender)) {
+    if (updates.gender && !['Male', 'Female', 'Other', 'Prefer not to say', 'Not specified'].includes(updates.gender)) {
       return res.status(400).json({ message: 'Invalid gender value' });
+    }
+
+    // Validate skills array
+    if (updates.skills && !Array.isArray(updates.skills)) {
+      return res.status(400).json({ message: 'Skills must be an array' });
     }
     
     const user = await User.findByIdAndUpdate(
@@ -78,14 +91,21 @@ router.put('/profile', auth, async (req, res) => {
       return res.status(404).json({ message: 'User not found' });
     }
 
+    console.log('Profile updated successfully:', user._id);
     res.json(user);
   } catch (error) {
+    console.error('Profile update error:', error);
+    
     if (error.name === 'ValidationError') {
       const validationErrors = Object.values(error.errors).map(err => err.message);
       return res.status(400).json({ 
         message: 'Validation error', 
         errors: validationErrors 
       });
+    }
+    
+    if (error.name === 'CastError') {
+      return res.status(400).json({ message: 'Invalid data format' });
     }
     
     res.status(500).json({ message: 'Server error', error: error.message });
@@ -179,20 +199,6 @@ router.delete('/profile-picture', auth, async (req, res) => {
   }
 });
 
-// Update online status
-router.put('/status', auth, async (req, res) => {
-  try {
-    const { isOnline } = req.body;
-    await User.findByIdAndUpdate(req.userId, {
-      isOnline,
-      lastActive: new Date()
-    });
-    res.json({ message: 'Status updated' });
-  } catch (error) {
-    res.status(500).json({ message: 'Server error', error: error.message });
-  }
-});
-
 // Update user settings
 router.put('/settings', auth, async (req, res) => {
   try {
@@ -213,7 +219,22 @@ router.put('/settings', auth, async (req, res) => {
     await User.findByIdAndUpdate(req.userId, updates);
     res.json({ message: 'Settings updated successfully' });
   } catch (error) {
+    console.error('Settings update error:', error);
     res.status(500).json({ message: 'Server error', error: error.message });
+  }
+});
+
+// Test endpoint for profile updates
+router.get('/profile-test', auth, async (req, res) => {
+  try {
+    const user = await User.findById(req.userId).select('-password');
+    res.json({ 
+      message: 'Profile endpoint working',
+      user: user,
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    res.status(500).json({ message: 'Test failed', error: error.message });
   }
 });
 
