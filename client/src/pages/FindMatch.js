@@ -27,6 +27,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import axios from 'axios';
 import { toast } from 'react-toastify';
+import API_BASE_URL from '../config/api';
 
 const FindMatch = () => {
   const { user } = useAuth();
@@ -58,7 +59,7 @@ const FindMatch = () => {
   const fetchMatches = async () => {
     setLoading(true);
     try {
-      const response = await axios.get(`http://localhost:5001/api/users/matches?genderPreference=${genderPreference}`);
+      const response = await axios.get(`${API_BASE_URL}/api/users/matches?genderPreference=${genderPreference}`);
       setMatches(response.data);
     } catch (error) {
       console.error('Error fetching matches:', error);
@@ -71,12 +72,26 @@ const FindMatch = () => {
 
   const fetchQuestions = async () => {
     try {
-      const response = await axios.get(`http://localhost:5001/api/questions/${user.domain}/random?count=20`);
+      console.log('Fetching questions for domain:', user.domain);
+      const response = await axios.get(`${API_BASE_URL}/api/questions/${user.domain}/random?count=20`);
+      console.log('Questions received:', response.data);
       setQuestions(response.data);
+      
+      if (response.data.length === 0) {
+        toast.warning('No questions available for your domain. Please contact admin.');
+      }
     } catch (error) {
       console.error('Error fetching questions:', error);
       const errorMessage = error.response?.data?.message || 'Error fetching questions';
       toast.error(errorMessage);
+      
+      // Try to fetch debug info
+      try {
+        const debugResponse = await axios.get(`${API_BASE_URL}/api/questions/debug/all`);
+        console.log('Debug info:', debugResponse.data);
+      } catch (debugError) {
+        console.error('Debug fetch failed:', debugError);
+      }
     }
   };
 
@@ -95,7 +110,7 @@ const FindMatch = () => {
 
   const updateOnlineStatus = async (isOnline) => {
     try {
-      await axios.put('http://localhost:5001/api/users/status', { isOnline });
+      await axios.put(`${API_BASE_URL}/api/users/status`, { isOnline });
     } catch (error) {
       console.error('Error updating online status:', error);
     }
@@ -110,7 +125,7 @@ const FindMatch = () => {
     try {
       const selectedQuestionObjects = questions.filter(q => selectedQuestions.includes(q._id));
       
-      const response = await axios.post('http://localhost:5001/api/interviews/create', {
+      const response = await axios.post(`${API_BASE_URL}/api/interviews/create`, {
         participantId: selectedMatch._id,
         domain: user.domain,
         selectedQuestions: selectedQuestionObjects,
@@ -193,7 +208,7 @@ const FindMatch = () => {
                 <CardContent>
                   <Box display="flex" alignItems="center" mb={2}>
                     <Avatar 
-                      src={match.profilePicture ? `http://localhost:5001${match.profilePicture}` : ''}
+                      src={match.profilePicture ? `${API_BASE_URL}${match.profilePicture}` : ''}
                       sx={{ width: 50, height: 50, mr: 2, bgcolor: 'primary.main' }}
                     >
                       {!match.profilePicture && match.name.charAt(0).toUpperCase()}

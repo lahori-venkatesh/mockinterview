@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Planned Features
+
 - Video call recording functionality
 - AI-powered interview feedback
 - Mobile app development
@@ -19,7 +20,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### 🎉 Initial Release
 
 #### ✨ Added
+
 - **Core Platform Features**
+
   - User authentication and authorization system
   - Peer-to-peer interview matching algorithm
   - Real-time video calling with WebRTC
@@ -28,6 +31,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Performance analytics and feedback system
 
 - **User Management**
+
   - User registration and profile setup
   - Skills and experience tracking
   - Role-based access control (User/Admin)
@@ -35,6 +39,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Account settings and preferences
 
 - **Premium Subscription System**
+
   - Razorpay payment integration
   - Monthly (₹299) and Yearly (₹1999) pricing plans
   - Premium feature access control
@@ -42,6 +47,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Automatic subscription management
 
 - **Admin Panel**
+
   - Comprehensive admin dashboard
   - User management and moderation
   - Question bank CRUD operations
@@ -58,6 +64,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - CORS configuration for cross-origin requests
 
 #### 🛠 Technical Stack
+
 - **Frontend**: React.js, Material-UI, Socket.io Client
 - **Backend**: Node.js, Express.js, Socket.io, MongoDB
 - **Database**: MongoDB Atlas
@@ -65,6 +72,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Hosting**: Vercel (Frontend/Admin), Render (Backend)
 
 #### 🔧 Development Features
+
 - Development mode for payment testing
 - Mock payment simulation
 - Environment-specific configurations
@@ -72,6 +80,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Input validation and sanitization
 
 #### 📚 Documentation
+
 - Comprehensive README with setup instructions
 - API documentation
 - Contributing guidelines
@@ -79,11 +88,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Environment configuration guides
 
 #### 🚀 Deployment
+
 - **Main Platform**: https://mockwithpeers.vercel.app/
 - **Admin Panel**: https://mockadmin.vercel.app/
 - **Backend API**: https://mockinterview-bdve.onrender.com
 
 ### 🔒 Security
+
 - JWT token-based authentication
 - Password hashing with bcrypt
 - Input validation and sanitization
@@ -92,6 +103,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Secure payment processing
 
 ### 📱 User Experience
+
 - Responsive design for all devices
 - Intuitive user interface
 - Real-time notifications
@@ -100,6 +112,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Accessibility considerations
 
 ### 🎯 Performance
+
 - Optimized database queries
 - Efficient state management
 - Code splitting and lazy loading
@@ -112,6 +125,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### 🔧 Pre-Release Development
 
 #### Added
+
 - Basic project structure setup
 - Initial React.js frontend development
 - Express.js backend API foundation
@@ -120,11 +134,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Basic UI components with Material-UI
 
 #### Changed
+
 - Refined project architecture
 - Improved code organization
 - Enhanced error handling
 
 #### Fixed
+
 - Initial bug fixes and optimizations
 - Database connection issues
 - Authentication flow improvements
@@ -134,6 +150,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### 🌱 Project Inception
 
 #### Added
+
 - Project initialization
 - Technology stack selection
 - Basic project planning
@@ -144,15 +161,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## 📋 Version History Summary
 
-| Version | Release Date | Key Features |
-|---------|-------------|--------------|
-| 1.0.0   | 2024-10-11  | Full platform launch with all core features |
-| 0.9.0   | 2024-10-10  | Pre-release development and testing |
-| 0.1.0   | 2024-10-01  | Project inception and planning |
+| Version | Release Date | Key Features                                |
+| ------- | ------------ | ------------------------------------------- |
+| 1.0.0   | 2024-10-11   | Full platform launch with all core features |
+| 0.9.0   | 2024-10-10   | Pre-release development and testing         |
+| 0.1.0   | 2024-10-01   | Project inception and planning              |
 
 ## 🔮 Future Roadmap
 
 ### Version 1.1.0 (Planned)
+
 - [ ] Video call recording and playback
 - [ ] AI-powered interview analysis
 - [ ] Advanced search and filtering
@@ -160,6 +178,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - [ ] Email notifications
 
 ### Version 1.2.0 (Planned)
+
 - [ ] Mobile application (React Native)
 - [ ] Multi-language support
 - [ ] Advanced analytics dashboard
@@ -167,6 +186,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - [ ] Certification system
 
 ### Version 2.0.0 (Future)
+
 - [ ] AI interview bot
 - [ ] Company-specific interview prep
 - [ ] Live coding challenges
@@ -178,6 +198,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## 📞 Support & Feedback
 
 For questions about releases or to report issues:
+
 - 📧 Email: lahorivenkatesh709@gmail.com
 - 🐛 Issues: [GitHub Issues](https://github.com/lahori-venkatesh/mockinterview/issues)
 - 💡 Discussions: [GitHub Discussions](https://github.com/lahori-venkatesh/mockinterview/discussions)

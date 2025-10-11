@@ -25,6 +25,7 @@ import {
 } from '@mui/icons-material';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import API_BASE_URL from '../config/api';
 
 const Navbar = () => {
   const navigate = useNavigate();
@@ -182,7 +183,7 @@ const Navbar = () => {
               </Typography>
             </Box>
             <Avatar 
-              src={user?.profilePicture ? `http://localhost:5001${user.profilePicture}` : ''}
+              src={user?.profilePicture ? `${API_BASE_URL}${user.profilePicture}` : ''}
               onClick={handleMenu}
               sx={{ 
                 cursor: 'pointer', 

@@ -224,6 +224,29 @@ router.put('/settings', auth, async (req, res) => {
   }
 });
 
+// Get dashboard statistics
+router.get('/dashboard-stats', auth, async (req, res) => {
+  try {
+    const onlineUsers = await User.countDocuments({ 
+      isOnline: true,
+      lastActive: { $gte: new Date(Date.now() - 5 * 60 * 1000) } // Active in last 5 minutes
+    });
+    
+    const totalUsers = await User.countDocuments();
+    const premiumUsers = await User.countDocuments({ isPremium: true });
+    
+    res.json({
+      onlineUsers,
+      totalUsers,
+      premiumUsers,
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error('Dashboard stats error:', error);
+    res.status(500).json({ message: 'Failed to fetch dashboard stats', error: error.message });
+  }
+});
+
 // Test endpoint for profile updates
 router.get('/profile-test', auth, async (req, res) => {
   try {

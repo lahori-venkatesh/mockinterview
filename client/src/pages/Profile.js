@@ -130,7 +130,9 @@ const Profile = () => {
       });
 
       setProfilePicture(response.data.profilePicture);
-      updateUser({ profilePicture: response.data.profilePicture });
+      // Update user context with new profile picture
+      const updatedUser = { ...user, profilePicture: response.data.profilePicture };
+      updateUser(updatedUser);
       await refreshUserProfile(); // Refresh user data from server
       toast.success('Profile picture updated successfully');
     } catch (error) {
@@ -147,7 +149,9 @@ const Profile = () => {
       await axios.delete(`${API_BASE_URL}/api/users/profile-picture`);
       setProfilePicture('');
       setImagePreview('');
-      updateUser({ profilePicture: '' });
+      // Update user context to remove profile picture
+      const updatedUser = { ...user, profilePicture: '' };
+      updateUser(updatedUser);
       await refreshUserProfile(); // Refresh user data from server
       toast.success('Profile picture removed');
     } catch (error) {

@@ -27,6 +27,7 @@ import {
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import axios from 'axios';
+import API_BASE_URL from '../config/api';
 
 const Dashboard = () => {
   const { user } = useAuth();
@@ -43,14 +44,20 @@ const Dashboard = () => {
 
   const fetchStats = async () => {
     try {
-      // This would be a real API call to get dashboard stats
+      const response = await axios.get(`${API_BASE_URL}/api/users/dashboard-stats`);
       setStats({
         totalInterviews: user?.totalInterviews || 0,
         rating: user?.rating || 0,
-        onlineUsers: Math.floor(Math.random() * 50) + 10 // Mock data
+        onlineUsers: response.data.onlineUsers || 0
       });
     } catch (error) {
       console.error('Error fetching stats:', error);
+      // Fallback to user data
+      setStats({
+        totalInterviews: user?.totalInterviews || 0,
+        rating: user?.rating || 0,
+        onlineUsers: 0
+      });
     }
   };
 
