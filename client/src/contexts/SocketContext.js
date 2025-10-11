@@ -22,12 +22,8 @@ export const SocketProvider = ({ children }) => {
       const newSocket = io(API_BASE_URL);
       setSocket(newSocket);
 
-      // Emit user online status
-      newSocket.emit('user-online', {
-        userId: user._id,
-        name: user.name,
-        domain: user.domain
-      });
+      // Emit user online status with full user data for personal room
+      newSocket.emit('user-online', user);
 
       return () => {
         newSocket.close();

@@ -23,14 +23,19 @@ import {
   Checkbox,
   Alert
 } from '@mui/material';
+import {
+  Send as SendIcon
+} from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { useSocket } from '../contexts/SocketContext';
 import axios from 'axios';
 import { toast } from 'react-toastify';
 import API_BASE_URL from '../config/api';
 
 const FindMatch = () => {
   const { user } = useAuth();
+  const { socket } = useSocket();
   const navigate = useNavigate();
   const [matches, setMatches] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -52,11 +57,31 @@ const FindMatch = () => {
     // Set user as online when component mounts
     updateOnlineStatus(true);
     
+    // Connect to socket for real-time notifications
+    if (socket && user) {
+      socket.emit('user-online', user._id);
+      
+      // Listen for invitation responses
+      socket.on('invitation-accepted', (data) => {
+        toast.success(data.message);
+        navigate(`/interview/${data.roomId}`);
+      });
+
+      socket.on('invitation-rejected', (data) => {
+        toast.info(data.message);
+      });
+
+      return () => {
+        socket.off('invitation-accepted');
+        socket.off('invitation-rejected');
+      };
+    }
+    
     // Set user as offline when component unmounts
     return () => {
       updateOnlineStatus(false);
     };
-  }, []);
+  }, [socket, user, navigate]);
 
   const fetchMatches = async () => {
     setLoading(true);
@@ -119,7 +144,7 @@ const FindMatch = () => {
     }
   };
 
-  const createInterviewRoom = async () => {
+  const sendInterviewInvitation = async () => {
     if (selectedQuestions.length === 0) {
       toast.error('Please select at least one question');
       return;
@@ -128,21 +153,28 @@ const FindMatch = () => {
     try {
       const selectedQuestionObjects = questions.filter(q => selectedQuestions.includes(q._id));
       
-      const response = await axios.post(`${API_BASE_URL}/api/interviews/create`, {
+      const response = await axios.post(`${API_BASE_URL}/api/interviews/send-invitation`, {
         participantId: selectedMatch._id,
         domain: user.domain,
-        selectedQuestions: selectedQuestionObjects,
-        isPremium: user.isPremium
+        selectedQuestions: selectedQuestionObjects
       });
 
-      toast.success('Interview room created!');
-      navigate(`/interview/${response.data.roomId}`);
+      toast.success(`Interview invitation sent to ${selectedMatch.name}!`);
+      toast.info('Waiting for their response...');
+      
+      // Close dialog and reset selection
+      setQuestionDialogOpen(false);
+      setSelectedMatch(null);
+      setSelectedQuestions([]);
+      
     } catch (error) {
-      console.error('Error creating interview room:', error);
-      const errorMessage = error.response?.data?.message || 'Error creating interview room';
+      console.error('Error sending invitation:', error);
+      const errorMessage = error.response?.data?.message || 'Error sending interview invitation';
       toast.error(errorMessage);
     }
   };
+
+
 
   // Check if user profile is complete
   if (!user?.domain || !user?.skills?.length || !user?.experience || !user?.gender) {
@@ -164,9 +196,9 @@ const FindMatch = () => {
 
   return (
     <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
-      <Typography variant="h4" gutterBottom>
-        Find Interview Partner
-      </Typography>
+        <Typography variant="h4" gutterBottom>
+          Find Interview Partner
+        </Typography>
 
       {user?.isPremium && (
         <Box mb={3}>
@@ -279,8 +311,10 @@ const FindMatch = () => {
                     fullWidth
                     onClick={() => handleStartInterview(match)}
                     sx={{ mt: 2 }}
+                    startIcon={<SendIcon />}
+
                   >
-                    Start Interview
+                    Send Interview Invitation
                   </Button>
                 </CardContent>
               </Card>
@@ -328,11 +362,12 @@ const FindMatch = () => {
             Cancel
           </Button>
           <Button 
-            onClick={createInterviewRoom}
+            onClick={sendInterviewInvitation}
             variant="contained"
             disabled={selectedQuestions.length === 0}
+            startIcon={<SendIcon />}
           >
-            Create Interview Room ({selectedQuestions.length} questions)
+            Send Invitation ({selectedQuestions.length} questions)
           </Button>
         </DialogActions>
       </Dialog>

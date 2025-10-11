@@ -9,6 +9,7 @@ import App from './App';
 import theme from './theme';
 import { AuthProvider } from './contexts/AuthContext';
 import { SocketProvider } from './contexts/SocketContext';
+import { InvitationProvider } from './contexts/InvitationContext';
 import ErrorBoundary from './ErrorBoundary';
 
 // Debug: Log environment variables
@@ -24,8 +25,10 @@ root.render(
           <CssBaseline />
           <AuthProvider>
             <SocketProvider>
-              <App />
-              <ToastContainer position="top-right" autoClose={3000} />
+              <InvitationProvider>
+                <App />
+                <ToastContainer position="top-right" autoClose={3000} />
+              </InvitationProvider>
             </SocketProvider>
           </AuthProvider>
         </ThemeProvider>

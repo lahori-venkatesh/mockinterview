@@ -91,71 +91,121 @@ app.use('/api/admin', adminRoutes);
 app.use('/api/payment', paymentRoutes);
 
 // Socket.io connection handling
-const activeUsers = new Map();
-const interviewRooms = new Map();
+const connectedUsers = new Map(); // userId -> socketId mapping
+const pendingInvitations = new Map(); // Store pending interview invitations
 
 io.on('connection', (socket) => {
   console.log('User connected:', socket.id);
 
+  // User joins their personal room for notifications
   socket.on('user-online', (userData) => {
-    activeUsers.set(socket.id, userData);
-    socket.broadcast.emit('user-joined', userData);
+    connectedUsers.set(userData._id, socket.id);
+    socket.join(userData._id); // Join personal room with userId
+    console.log(`User ${userData._id} is online with socket ${socket.id}`);
   });
 
-  socket.on('join-interview', (interviewData) => {
-    const { roomId, userId, userType } = interviewData;
-    socket.join(roomId);
+  // Handle interview invitation
+  socket.on('send-interview-invitation', (invitationData) => {
+    const { inviteeId, inviterName, roomId, domain, questions } = invitationData;
     
-    if (!interviewRooms.has(roomId)) {
-      interviewRooms.set(roomId, { participants: [], questions: [], currentQuestion: 0 });
+    // Find the invitee's socket
+    const inviteeSocketId = connectedUsers.get(inviteeId);
+    
+    if (inviteeSocketId) {
+      // Store the invitation
+      pendingInvitations.set(roomId, {
+        inviterId: socket.id,
+        inviteeId: inviteeSocketId,
+        roomId,
+        inviterName,
+        domain,
+        questions,
+        timestamp: new Date()
+      });
+      
+      // Send invitation to the invitee
+      io.to(inviteeSocketId).emit('interview-invitation-received', {
+        roomId,
+        inviterName,
+        domain,
+        questions: questions.length,
+        timestamp: new Date()
+      });
+      
+      console.log(`Interview invitation sent from ${inviterName} to user ${inviteeId}`);
+    } else {
+      // User is offline
+      socket.emit('invitation-failed', { 
+        message: 'User is currently offline. Please try again later.' 
+      });
     }
+  });
+
+  // Handle invitation response
+  socket.on('respond-to-invitation', (responseData) => {
+    const { roomId, accepted } = responseData;
+    const invitation = pendingInvitations.get(roomId);
     
-    const room = interviewRooms.get(roomId);
-    room.participants.push({ socketId: socket.id, userId, userType });
-    
-    socket.to(roomId).emit('participant-joined', { userId, userType });
+    if (invitation) {
+      if (accepted) {
+        // Notify the inviter that invitation was accepted
+        io.to(invitation.inviterId).emit('invitation-accepted', { roomId });
+        
+        // Both users can now join the interview room
+        socket.join(roomId);
+        io.sockets.sockets.get(invitation.inviterId)?.join(roomId);
+        
+        console.log(`Interview invitation accepted for room ${roomId}`);
+      } else {
+        // Notify the inviter that invitation was rejected
+        io.to(invitation.inviterId).emit('invitation-rejected', { roomId });
+        console.log(`Interview invitation rejected for room ${roomId}`);
+      }
+      
+      // Remove the pending invitation
+      pendingInvitations.delete(roomId);
+    }
   });
 
-  socket.on('interview-question', (data) => {
-    const { roomId, question, askedBy } = data;
-    socket.to(roomId).emit('new-question', { question, askedBy });
+  // Join interview room
+  socket.on('join-interview', ({ roomId, userId, role }) => {
+    socket.join(roomId);
+    socket.to(roomId).emit('user-joined', { userId, role });
+    console.log(`User ${userId} joined interview room ${roomId} as ${role}`);
   });
 
-  socket.on('interview-answer', (data) => {
-    const { roomId, answer, answeredBy } = data;
-    socket.to(roomId).emit('new-answer', { answer, answeredBy });
+  // WebRTC signaling
+  socket.on('offer', ({ roomId, offer }) => {
+    console.log('Relaying offer for room:', roomId);
+    socket.to(roomId).emit('offer', offer);
   });
 
-  socket.on('video-offer', (data) => {
-    socket.to(data.roomId).emit('video-offer', data);
+  socket.on('answer', ({ roomId, answer }) => {
+    console.log('Relaying answer for room:', roomId);
+    socket.to(roomId).emit('answer', answer);
   });
 
-  socket.on('video-answer', (data) => {
-    socket.to(data.roomId).emit('video-answer', data);
-  });
-
-  socket.on('ice-candidate', (data) => {
-    socket.to(data.roomId).emit('ice-candidate', data);
-  });
-
-  socket.on('feedback', (data) => {
-    const { roomId, feedback, fromUser, toUser } = data;
-    socket.to(roomId).emit('feedback-received', { feedback, fromUser, toUser });
+  socket.on('ice-candidate', ({ roomId, candidate }) => {
+    console.log('Relaying ICE candidate for room:', roomId);
+    socket.to(roomId).emit('ice-candidate', candidate);
   });
 
   socket.on('disconnect', () => {
     console.log('User disconnected:', socket.id);
-    activeUsers.delete(socket.id);
-    
-    // Clean up interview rooms
-    for (const [roomId, room] of interviewRooms.entries()) {
-      room.participants = room.participants.filter(p => p.socketId !== socket.id);
-      if (room.participants.length === 0) {
-        interviewRooms.delete(roomId);
+    // Remove user from connected users
+    for (const [userId, socketId] of connectedUsers.entries()) {
+      if (socketId === socket.id) {
+        connectedUsers.delete(userId);
+        console.log(`User ${userId} went offline`);
+        break;
       }
     }
   });
 });
+
+// Make io and connectedUsers available to routes
+app.set('io', io);
+app.set('connectedUsers', connectedUsers);
 
 // MongoDB connection - Force student-interview database
 let mongoUri = process.env.MONGODB_URI;

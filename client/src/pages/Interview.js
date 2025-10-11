@@ -137,24 +137,27 @@ const Interview = () => {
   };
 
   useEffect(() => {
-    if (socket) {
-      socket.on('participant-joined', handleParticipantJoined);
-      socket.on('new-question', handleNewQuestion);
-      socket.on('new-answer', handleNewAnswer);
-      socket.on('video-offer', handleVideoOffer);
-      socket.on('video-answer', handleVideoAnswer);
+    if (socket && interview) {
+      // Join the interview room via socket
+      socket.emit('join-interview', {
+        roomId: interview.roomId,
+        userId: user._id,
+        role: interview.participants.find(p => p.userId._id === user._id)?.role || 'participant'
+      });
+
+      socket.on('user-joined', handleUserJoined);
+      socket.on('offer', handleVideoOffer);
+      socket.on('answer', handleVideoAnswer);
       socket.on('ice-candidate', handleIceCandidate);
 
       return () => {
-        socket.off('participant-joined');
-        socket.off('new-question');
-        socket.off('new-answer');
-        socket.off('video-offer');
-        socket.off('video-answer');
+        socket.off('user-joined');
+        socket.off('offer');
+        socket.off('answer');
         socket.off('ice-candidate');
       };
     }
-  }, [socket]);
+  }, [socket, interview, user]);
 
   // Timer effect
   useEffect(() => {
@@ -176,6 +179,14 @@ const Interview = () => {
     try {
       const response = await axios.post(`${API_BASE_URL}/api/interviews/join/${roomId}`);
       setInterview(response.data);
+      
+      // Check if interview is still pending (not accepted yet)
+      if (response.data.status === 'pending') {
+        toast.error('Interview invitation has not been accepted yet');
+        navigate('/find-match');
+        return;
+      }
+      
       if (joinInterviewRoom) {
         joinInterviewRoom(roomId, 'participant');
       }
@@ -210,12 +221,23 @@ const Interview = () => {
       setMediaPermissionGranted(true);
       setPermissionError('');
       
-      // Set video source
-      if (webcamRef.current) {
-        webcamRef.current.srcObject = userStream;
-      }
+      // Set video source - use setTimeout to ensure ref is ready
+      setTimeout(() => {
+        if (webcamRef.current) {
+          webcamRef.current.srcObject = userStream;
+          webcamRef.current.play().catch(console.error);
+        }
+      }, 100);
       
       toast.success('Camera and microphone connected successfully');
+      
+      // Auto-initiate connection if interview is ready
+      if (interview && interview.participants.length >= 2) {
+        setTimeout(() => {
+          initiatePeerConnection();
+        }, 2000);
+      }
+      
     } catch (error) {
       console.error('Error accessing media devices:', error);
       
@@ -236,63 +258,153 @@ const Interview = () => {
     }
   };
 
-  const handleParticipantJoined = (data) => {
-    toast.info(`${data.userId} joined the interview`);
-    initiatePeerConnection();
-  };
-
-  const initiatePeerConnection = () => {
-    const newPeer = new Peer({
-      initiator: true,
-      trickle: false,
-      stream: stream
-    });
-
-    newPeer.on('offer', (offer) => {
-      socket.emit('video-offer', { roomId, offer });
-    });
-
-    newPeer.on('stream', (partnerStream) => {
-      setPartnerStream(partnerStream);
-      if (partnerVideoRef.current) {
-        partnerVideoRef.current.srcObject = partnerStream;
-      }
-    });
-
-    setPeer(newPeer);
-  };
-
-  const handleVideoOffer = (data) => {
-    const newPeer = new Peer({
-      initiator: false,
-      trickle: false,
-      stream: stream
-    });
-
-    newPeer.on('answer', (answer) => {
-      socket.emit('video-answer', { roomId, answer });
-    });
-
-    newPeer.on('stream', (partnerStream) => {
-      setPartnerStream(partnerStream);
-      if (partnerVideoRef.current) {
-        partnerVideoRef.current.srcObject = partnerStream;
-      }
-    });
-
-    newPeer.signal(data.offer);
-    setPeer(newPeer);
-  };
-
-  const handleVideoAnswer = (data) => {
-    if (peer) {
-      peer.signal(data.answer);
+  const handleUserJoined = (data) => {
+    console.log('User joined interview:', data);
+    toast.info(`Another user joined the interview`);
+    
+    // If we have our stream ready, initiate peer connection
+    if (stream && !peer) {
+      setTimeout(() => {
+        initiatePeerConnection();
+      }, 1000);
     }
   };
 
-  const handleIceCandidate = (data) => {
+  const initiatePeerConnection = () => {
+    if (!stream || peer) {
+      console.log('Stream not available or peer already exists');
+      return;
+    }
+
+    console.log('Initiating peer connection...');
+    
+    const newPeer = new Peer({
+      initiator: true,
+      trickle: false,
+      stream: stream,
+      config: {
+        iceServers: [
+          { urls: 'stun:stun.l.google.com:19302' },
+          { urls: 'stun:stun1.l.google.com:19302' }
+        ]
+      }
+    });
+
+    newPeer.on('signal', (data) => {
+      console.log('Sending offer...');
+      socket.emit('offer', { roomId, offer: data });
+    });
+
+    newPeer.on('stream', (partnerStream) => {
+      console.log('Received partner stream');
+      setPartnerStream(partnerStream);
+      
+      // Set partner video
+      setTimeout(() => {
+        if (partnerVideoRef.current) {
+          partnerVideoRef.current.srcObject = partnerStream;
+          partnerVideoRef.current.play().catch(console.error);
+        }
+      }, 100);
+      
+      toast.success('Connected to partner video!');
+    });
+
+    newPeer.on('error', (err) => {
+      console.error('Peer connection error:', err);
+      toast.error('Video connection failed. Retrying...');
+      
+      // Retry connection after 2 seconds
+      setTimeout(() => {
+        setPeer(null);
+        initiatePeerConnection();
+      }, 2000);
+    });
+
+    newPeer.on('close', () => {
+      console.log('Peer connection closed');
+      setPartnerStream(null);
+    });
+
+    setPeer(newPeer);
+  };
+
+  const handleVideoOffer = (offer) => {
+    if (!stream || peer) {
+      console.log('Stream not available or peer already exists for answering offer');
+      return;
+    }
+
+    console.log('Received video offer, creating answer peer...');
+
+    const newPeer = new Peer({
+      initiator: false,
+      trickle: false,
+      stream: stream,
+      config: {
+        iceServers: [
+          { urls: 'stun:stun.l.google.com:19302' },
+          { urls: 'stun:stun1.l.google.com:19302' }
+        ]
+      }
+    });
+
+    newPeer.on('signal', (data) => {
+      console.log('Sending answer...');
+      socket.emit('answer', { roomId, answer: data });
+    });
+
+    newPeer.on('stream', (partnerStream) => {
+      console.log('Received partner stream (answerer)');
+      setPartnerStream(partnerStream);
+      
+      // Set partner video
+      setTimeout(() => {
+        if (partnerVideoRef.current) {
+          partnerVideoRef.current.srcObject = partnerStream;
+          partnerVideoRef.current.play().catch(console.error);
+        }
+      }, 100);
+      
+      toast.success('Connected to partner video!');
+    });
+
+    newPeer.on('error', (err) => {
+      console.error('Peer connection error (answerer):', err);
+      toast.error('Video connection failed');
+    });
+
+    newPeer.on('close', () => {
+      console.log('Peer connection closed (answerer)');
+      setPartnerStream(null);
+    });
+
+    try {
+      newPeer.signal(offer);
+      setPeer(newPeer);
+    } catch (error) {
+      console.error('Error signaling offer:', error);
+    }
+  };
+
+  const handleVideoAnswer = (answer) => {
     if (peer) {
-      peer.signal(data.candidate);
+      console.log('Received video answer, signaling...');
+      try {
+        peer.signal(answer);
+      } catch (error) {
+        console.error('Error signaling answer:', error);
+      }
+    }
+  };
+
+  const handleIceCandidate = (candidate) => {
+    if (peer) {
+      try {
+        peer.signal(candidate);
+      } catch (error) {
+        console.error('Error signaling ICE candidate:', error);
+      }
     }
   };
 

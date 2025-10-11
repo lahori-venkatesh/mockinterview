@@ -32,8 +32,8 @@ const interviewSchema = new mongoose.Schema({
   }],
   status: {
     type: String,
-    enum: ['waiting', 'active', 'completed', 'cancelled'],
-    default: 'waiting'
+    enum: ['pending', 'waiting', 'active', 'completed', 'cancelled', 'rejected'],
+    default: 'pending'
   },
   duration: {
     type: Number,

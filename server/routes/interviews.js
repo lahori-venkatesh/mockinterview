@@ -6,42 +6,245 @@ const User = require('../models/User');
 const auth = require('../middleware/auth');
 const router = express.Router();
 
-// Create interview room
-router.post('/create', auth, async (req, res) => {
+// Store pending invitations in memory (in production, use Redis)
+const pendingInvitations = new Map();
+
+// Send interview invitation
+router.post('/send-invitation', auth, async (req, res) => {
   try {
-    const { participantId, selectedQuestions, isPremium } = req.body;
-    const roomId = uuidv4();
+    const { participantId, selectedQuestions, domain } = req.body;
+    const invitationId = uuidv4();
+    
+    // Get interviewer and participant details
+    const interviewer = await User.findById(req.userId).select('name email skills domain profilePicture');
+    const participant = await User.findById(participantId).select('name email skills domain profilePicture');
+    
+    if (!participant) {
+      return res.status(404).json({ message: 'Participant not found' });
+    }
 
-    console.log('Creating interview room:', {
-      roomId,
-      interviewer: req.userId,
-      participant: participantId,
-      domain: req.body.domain
+    console.log('Sending interview invitation:', {
+      invitationId,
+      from: interviewer.name,
+      to: participant.name,
+      domain
     });
 
-    const interview = new Interview({
-      roomId,
-      participants: [
-        { userId: req.userId, role: 'interviewer' },
-        { userId: participantId, role: 'interviewee' }
-      ],
-      domain: req.body.domain,
+    // Store invitation details
+    const invitation = {
+      id: invitationId,
+      interviewer: {
+        id: interviewer._id,
+        name: interviewer.name,
+        email: interviewer.email,
+        skills: interviewer.skills,
+        domain: interviewer.domain,
+        profilePicture: interviewer.profilePicture
+      },
+      participant: {
+        id: participant._id,
+        name: participant.name,
+        email: participant.email,
+        skills: participant.skills,
+        domain: participant.domain,
+        profilePicture: participant.profilePicture
+      },
       selectedQuestions,
-      isPremium: isPremium || false
-    });
+      domain,
+      status: 'pending',
+      createdAt: new Date(),
+      expiresAt: new Date(Date.now() + 5 * 60 * 1000) // 5 minutes expiry
+    };
 
-    await interview.save();
-    await interview.populate('participants.userId', 'name email skills domain');
+    pendingInvitations.set(invitationId, invitation);
 
-    console.log('Interview room created successfully:', roomId);
+    // Send real-time invitation via Socket.io
+    const io = req.app.get('io');
+    const connectedUsers = req.app.get('connectedUsers');
+    
+    if (io && connectedUsers.has(participantId)) {
+      io.to(participantId).emit('interview-invitation', invitation);
+      console.log('Interview invitation sent via socket to:', participant.name);
+    }
 
     res.status(201).json({
-      message: 'Interview room created',
+      message: 'Interview invitation sent',
+      invitationId,
+      invitation
+    });
+  } catch (error) {
+    console.error('Invitation sending error:', error);
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+});
+
+// Respond to interview invitation
+router.post('/respond-invitation/:invitationId', auth, async (req, res) => {
+  try {
+    const { invitationId } = req.params;
+    const { response } = req.body; // 'accept' or 'reject'
+    
+    const invitation = pendingInvitations.get(invitationId);
+    
+    if (!invitation) {
+      return res.status(404).json({ message: 'Invitation not found or expired' });
+    }
+
+    // Check if user is the intended participant
+    if (invitation.participant.id.toString() !== req.userId) {
+      return res.status(403).json({ message: 'Not authorized to respond to this invitation' });
+    }
+
+    console.log(`Invitation ${response} by ${invitation.participant.name}`);
+
+    const io = req.app.get('io');
+    const connectedUsers = req.app.get('connectedUsers');
+
+    if (response === 'accept') {
+      // Create interview room
+      const roomId = uuidv4();
+      
+      const interview = new Interview({
+        roomId,
+        participants: [
+          { userId: invitation.interviewer.id, role: 'interviewer' },
+          { userId: invitation.participant.id, role: 'interviewee' }
+        ],
+        domain: invitation.domain,
+        selectedQuestions: invitation.selectedQuestions,
+        status: 'waiting'
+      });
+
+      await interview.save();
+      await interview.populate('participants.userId', 'name email skills domain profilePicture');
+
+      // Remove invitation from pending
+      pendingInvitations.delete(invitationId);
+
+      // Notify interviewer about acceptance
+      if (io && connectedUsers.has(invitation.interviewer.id.toString())) {
+        io.to(invitation.interviewer.id.toString()).emit('invitation-accepted', {
+          roomId,
+          interview,
+          message: `${invitation.participant.name} accepted your interview invitation!`
+        });
+      }
+
+      res.json({
+        message: 'Invitation accepted',
+        roomId,
+        interview
+      });
+    } else {
+      // Remove invitation from pending
+      pendingInvitations.delete(invitationId);
+
+      // Notify interviewer about rejection
+      if (io && connectedUsers.has(invitation.interviewer.id.toString())) {
+        io.to(invitation.interviewer.id.toString()).emit('invitation-rejected', {
+          message: `${invitation.participant.name} declined your interview invitation.`
+        });
+      }
+
+      res.json({ message: 'Invitation rejected' });
+    }
+  } catch (error) {
+    console.error('Invitation response error:', error);
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+});
+
+// Get pending invitations for user
+router.get('/pending-invitations', auth, async (req, res) => {
+  try {
+    const userInvitations = [];
+    const now = new Date();
+    
+    // Clean expired invitations and find user's invitations
+    for (const [id, invitation] of pendingInvitations.entries()) {
+      if (invitation.expiresAt < now) {
+        pendingInvitations.delete(id);
+      } else if (invitation.participant.id.toString() === req.userId) {
+        userInvitations.push(invitation);
+      }
+    }
+
+    res.json({ invitations: userInvitations });
+  } catch (error) {
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+});
+
+// Accept interview invitation
+router.post('/accept/:roomId', auth, async (req, res) => {
+  try {
+    const { roomId } = req.params;
+    
+    const interview = await Interview.findOne({ roomId })
+      .populate('participants.userId', 'name email skills domain');
+
+    if (!interview) {
+      return res.status(404).json({ message: 'Interview invitation not found' });
+    }
+
+    // Check if user is the invited participant
+    const isInvitedParticipant = interview.participants.some(
+      p => p.userId._id.toString() === req.userId && p.role === 'interviewee'
+    );
+
+    if (!isInvitedParticipant) {
+      return res.status(403).json({ message: 'Not authorized to accept this invitation' });
+    }
+
+    // Update interview status to waiting (ready to start)
+    interview.status = 'waiting';
+    await interview.save();
+
+    console.log('Interview invitation accepted:', roomId);
+
+    res.json({
+      message: 'Interview invitation accepted',
       interview,
       roomId
     });
   } catch (error) {
-    console.error('Interview creation error:', error);
+    console.error('Interview acceptance error:', error);
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+});
+
+// Reject interview invitation
+router.post('/reject/:roomId', auth, async (req, res) => {
+  try {
+    const { roomId } = req.params;
+    
+    const interview = await Interview.findOne({ roomId });
+
+    if (!interview) {
+      return res.status(404).json({ message: 'Interview invitation not found' });
+    }
+
+    // Check if user is the invited participant
+    const isInvitedParticipant = interview.participants.some(
+      p => p.userId._id.toString() === req.userId && p.role === 'interviewee'
+    );
+
+    if (!isInvitedParticipant) {
+      return res.status(403).json({ message: 'Not authorized to reject this invitation' });
+    }
+
+    // Update interview status to rejected
+    interview.status = 'rejected';
+    await interview.save();
+
+    console.log('Interview invitation rejected:', roomId);
+
+    res.json({
+      message: 'Interview invitation rejected',
+      roomId
+    });
+  } catch (error) {
+    console.error('Interview rejection error:', error);
     res.status(500).json({ message: 'Server error', error: error.message });
   }
 });

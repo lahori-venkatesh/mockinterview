@@ -2,6 +2,7 @@ import React from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { useAuth } from './contexts/AuthContext';
 import Navbar from './components/Navbar';
+import InvitationManager from './components/InvitationManager';
 import LandingPage from './pages/LandingPage';
 import Login from './pages/Login';
 import Register from './pages/Register';
@@ -44,6 +45,7 @@ function App() {
   return (
     <div className="App">
       {user && <Navbar />}
+      {user && <InvitationManager />}
       <Routes>
         <Route 
           path="/" 
