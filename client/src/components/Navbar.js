@@ -136,7 +136,7 @@ const Navbar = () => {
         </Box>
         
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-          {user?.isPremium && (
+          {user?.isPremium ? (
             <Chip 
               label="Premium" 
               size="small" 
@@ -146,6 +146,24 @@ const Navbar = () => {
                 fontWeight: 'bold'
               }} 
             />
+          ) : (
+            <Button
+              variant="contained"
+              size="small"
+              onClick={() => navigate('/premium')}
+              sx={{
+                bgcolor: 'gold',
+                color: 'black',
+                fontWeight: 'bold',
+                '&:hover': {
+                  bgcolor: '#ffd700',
+                  transform: 'scale(1.05)'
+                },
+                transition: 'all 0.2s ease'
+              }}
+            >
+              Upgrade to Premium
+            </Button>
           )}
           
           <IconButton color="inherit">

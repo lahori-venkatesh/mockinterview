@@ -40,6 +40,22 @@ const userSchema = new mongoose.Schema({
     type: Boolean,
     default: false
   },
+  premiumExpiryDate: {
+    type: Date
+  },
+  premiumPlan: {
+    type: String,
+    enum: ['monthly', 'yearly']
+  },
+  paymentHistory: [{
+    orderId: String,
+    paymentId: String,
+    amount: Number,
+    currency: String,
+    planType: String,
+    status: String,
+    paidAt: Date
+  }],
   rating: {
     type: Number,
     default: 0,

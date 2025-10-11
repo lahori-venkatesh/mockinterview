@@ -14,6 +14,7 @@ import Profile from './pages/Profile';
 import AccountSettings from './pages/AccountSettings';
 import History from './pages/History';
 import AdminDashboard from './pages/AdminDashboard';
+import Premium from './pages/Premium';
 
 function App() {
   const { user, loading, isProfileComplete } = useAuth();
@@ -116,6 +117,14 @@ function App() {
           path="/admin" 
           element={
             user && user.role === 'admin' ? <AdminDashboard /> : <Navigate to="/" />
+          } 
+        />
+        <Route 
+          path="/premium" 
+          element={
+            user ? 
+            (shouldRedirectToProfileSetup(user) ? <Navigate to="/profile-setup" /> : <Premium />) :
+            <Navigate to="/" />
           } 
         />
       </Routes>

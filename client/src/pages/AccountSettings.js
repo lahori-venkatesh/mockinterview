@@ -28,6 +28,7 @@ import {
   Delete as DeleteIcon,
   Visibility as VisibilityIcon,
   VisibilityOff as VisibilityOffIcon,
+  Payment as PaymentIcon,
   Warning as WarningIcon,
   Shield as ShieldIcon,
   Notifications as NotificationsIcon,
@@ -35,6 +36,7 @@ import {
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import PaymentHistory from '../components/PaymentHistory';
 import axios from 'axios';
 import { toast } from 'react-toastify';
 
@@ -267,6 +269,21 @@ const AccountSettings = () => {
                     </Typography>
                   </Grid>
                 </Grid>
+              </CardContent>
+            </Card>
+          </Grid>
+
+          {/* Payment History */}
+          <Grid item xs={12}>
+            <Card>
+              <CardContent>
+                <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
+                  <PaymentIcon sx={{ mr: 2, color: 'primary.main' }} />
+                  <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
+                    Payment & Billing
+                  </Typography>
+                </Box>
+                <PaymentHistory />
               </CardContent>
             </Card>
           </Grid>
