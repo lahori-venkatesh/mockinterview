@@ -20,7 +20,8 @@ import {
   Person as PersonIcon,
   Logout as LogoutIcon,
   Notifications as NotificationsIcon,
-  Security as SecurityIcon
+  Security as SecurityIcon,
+  AdminPanelSettings as AdminIcon
 } from '@mui/icons-material';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
@@ -115,6 +116,22 @@ const Navbar = () => {
             >
               History
             </Button>
+            {user?.role === 'admin' && (
+              <Button 
+                color="inherit" 
+                startIcon={<AdminIcon />}
+                onClick={() => navigate('/admin')}
+                variant={isActive('/admin') ? 'contained' : 'text'}
+                sx={{ 
+                  borderRadius: 2,
+                  textTransform: 'none',
+                  bgcolor: isActive('/admin') ? 'rgba(255,255,255,0.2)' : 'transparent',
+                  '&:hover': { bgcolor: 'rgba(255,255,255,0.1)' }
+                }}
+              >
+                Admin
+              </Button>
+            )}
           </Box>
         </Box>
         

@@ -19,6 +19,17 @@ const questionSchema = new mongoose.Schema({
     enum: ['Easy', 'Medium', 'Hard'],
     required: true
   },
+  type: {
+    type: String,
+    enum: ['multiple-choice', 'coding', 'open-ended'],
+    default: 'open-ended'
+  },
+  options: [{
+    type: String
+  }],
+  correctAnswer: {
+    type: String
+  },
   tags: [String],
   sampleAnswer: {
     type: String,
@@ -27,6 +38,14 @@ const questionSchema = new mongoose.Schema({
   isActive: {
     type: Boolean,
     default: true
+  },
+  createdBy: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User'
+  },
+  usageCount: {
+    type: Number,
+    default: 0
   }
 }, {
   timestamps: true

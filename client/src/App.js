@@ -13,6 +13,7 @@ import Interview from './pages/Interview';
 import Profile from './pages/Profile';
 import AccountSettings from './pages/AccountSettings';
 import History from './pages/History';
+import AdminDashboard from './pages/AdminDashboard';
 
 function App() {
   const { user, loading, isProfileComplete } = useAuth();
@@ -109,6 +110,12 @@ function App() {
             user ? 
             (shouldRedirectToProfileSetup(user) ? <Navigate to="/profile-setup" /> : <History />) :
             <Navigate to="/" />
+          } 
+        />
+        <Route 
+          path="/admin" 
+          element={
+            user && user.role === 'admin' ? <AdminDashboard /> : <Navigate to="/" />
           } 
         />
       </Routes>

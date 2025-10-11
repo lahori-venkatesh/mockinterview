@@ -69,6 +69,24 @@ const userSchema = new mongoose.Schema({
   },
   resetPasswordToken: String,
   resetPasswordExpiry: Date,
+  role: {
+    type: String,
+    enum: ['user', 'admin'],
+    default: 'user'
+  },
+  lastLogin: {
+    type: Date,
+    default: Date.now
+  },
+  reports: [{
+    reason: String,
+    description: String,
+    reportedAt: Date,
+    reportedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User'
+    }
+  }],
   settings: {
     emailNotifications: {
       type: Boolean,

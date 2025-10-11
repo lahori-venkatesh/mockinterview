@@ -10,6 +10,7 @@ const authRoutes = require('./routes/auth');
 const userRoutes = require('./routes/users');
 const interviewRoutes = require('./routes/interviews');
 const questionRoutes = require('./routes/questions');
+const adminRoutes = require('./routes/admin');
 
 const app = express();
 const server = http.createServer(app);
@@ -85,6 +86,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/interviews', interviewRoutes);
 app.use('/api/questions', questionRoutes);
+app.use('/api/admin', adminRoutes);
 
 // Socket.io connection handling
 const activeUsers = new Map();
