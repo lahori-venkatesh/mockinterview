@@ -1,338 +1,377 @@
-# 🎯 InterviewAce - Student Interview Platform
+# 🎯 MockInterview - Peer-to-Peer Interview Platform
 
-A comprehensive peer-to-peer interview practice platform built with React and Node.js, designed to help students and developers improve their technical interview skills through real-time mock interviews.
+A comprehensive platform for conducting mock interviews between peers, featuring real-time video calls, AI-powered question generation, and detailed performance analytics.
+
+## 🌐 Live Applications
+
+- **🚀 Main Platform**: [https://mockwithpeers.vercel.app/](https://mockwithpeers.vercel.app/)
+- **🔐 Admin Panel**: [https://mockadmin.vercel.app/](https://mockadmin.vercel.app/)
+- **🔧 Backend API**: [https://mockinterview-bdve.onrender.com](https://mockinterview-bdve.onrender.com)
+
+## 📋 Table of Contents
+
+- [Features](#-features)
+- [Tech Stack](#-tech-stack)
+- [Architecture](#-architecture)
+- [Installation](#-installation)
+- [Environment Setup](#-environment-setup)
+- [Usage](#-usage)
+- [API Documentation](#-api-documentation)
+- [Admin Panel](#-admin-panel)
+- [Premium Features](#-premium-features)
+- [Contributing](#-contributing)
+- [License](#-license)
+- [Author](#-author)
 
 ## ✨ Features
 
-### 🔐 Authentication & User Management
-- **Secure Registration/Login** - JWT-based authentication
-- **Profile Setup** - Guided onboarding process
-- **Forgot Password** - Email-based password recovery
-- **Account Settings** - Password change, account deletion, privacy settings
+### 🎥 Core Interview Features
+- **Real-time Video Interviews** - WebRTC-powered video calls
+- **Peer Matching System** - Smart algorithm to match interviewers and interviewees
+- **Domain-specific Questions** - Curated questions for different tech domains
+- **Live Code Sharing** - Real-time collaborative coding environment
+- **Interview Recording** - Save and review interview sessions
+- **Performance Analytics** - Detailed feedback and scoring system
 
-### 👤 User Profiles
-- **Complete Profile System** - Skills, experience, domain, bio
-- **Profile Picture Upload** - Image upload with validation
-- **Smart Matching** - Algorithm-based partner matching
-- **Online Status** - Real-time availability tracking
+### 👤 User Management
+- **User Authentication** - Secure JWT-based authentication
+- **Profile Management** - Comprehensive user profiles with skills and experience
+- **Role-based Access** - Different access levels for users and admins
+- **Premium Subscriptions** - Razorpay integrated payment system
 
-### 🎥 Live Interview System
-- **Real-time Video/Audio** - WebRTC-based communication
-- **Automatic Role Assignment** - Interviewer/Interviewee rotation
-- **Question Bank** - Domain-specific technical questions
-- **Screen Recording Prevention** - Security measures against cheating
-- **Interview Guidelines** - Strict behavioral rules enforcement
+### 🔧 Admin Features
+- **User Management** - View, manage, and moderate users
+- **Question Bank Management** - Add, edit, and categorize interview questions
+- **Analytics Dashboard** - Platform usage statistics and insights
+- **Admin Management** - Create and manage admin accounts
+- **Payment Tracking** - Monitor premium subscriptions and payments
 
-### 🛡️ Safety & Security
-- **Reporting System** - Report inappropriate behavior
-- **Content Moderation** - Automated behavior monitoring
-- **Privacy Controls** - Profile visibility settings
-- **Secure File Handling** - Safe image upload and storage
+### 💳 Payment & Premium
+- **Flexible Pricing** - Monthly (₹299) and Yearly (₹1999) plans
+- **Razorpay Integration** - Secure payment processing
+- **Premium Features** - Unlimited interviews, priority matching, advanced analytics
+- **Payment History** - Complete transaction records
 
-### 📊 Analytics & History
-- **Interview History** - Track past interviews
-- **Rating System** - Peer feedback and ratings
-- **Performance Analytics** - Progress tracking
-- **Premium Features** - Advanced matching options
-
-## 🚀 Tech Stack
+## 🛠 Tech Stack
 
 ### Frontend
-- **React 18** - Modern React with hooks
-- **Material-UI (MUI)** - Professional UI components
+- **React.js** - Modern UI library
+- **Material-UI (MUI)** - Component library for consistent design
 - **React Router** - Client-side routing
-- **Axios** - HTTP client
+- **Axios** - HTTP client for API calls
 - **Socket.io Client** - Real-time communication
-- **React Webcam** - Camera integration
-- **Simple Peer** - WebRTC implementation
 
 ### Backend
-- **Node.js** - Server runtime
-- **Express.js** - Web framework
-- **MongoDB** - Database
-- **Mongoose** - ODM for MongoDB
-- **Socket.io** - Real-time communication
-- **JWT** - Authentication tokens
-- **Bcrypt** - Password hashing
-- **Multer** - File upload handling
+- **Node.js** - Runtime environment
+- **Express.js** - Web application framework
+- **Socket.io** - Real-time bidirectional communication
+- **MongoDB** - NoSQL database
+- **Mongoose** - MongoDB object modeling
+- **JWT** - JSON Web Tokens for authentication
+- **Razorpay** - Payment gateway integration
 
-## 📋 Prerequisites
+### Infrastructure
+- **Frontend Hosting** - Vercel
+- **Admin Panel Hosting** - Vercel
+- **Backend Hosting** - Render
+- **Database** - MongoDB Atlas
+- **File Storage** - Local storage with multer
 
-Before running this application, make sure you have:
+## 🏗 Architecture
 
-- **Node.js** (v16 or higher)
-- **MongoDB** (local installation or MongoDB Atlas)
-- **npm** or **yarn** package manager
-
-## 🛠️ Installation & Setup
-
-### 1. Clone the Repository
-```bash
-git clone <repository-url>
-cd student-interview-platform
+```
+┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
+│   Frontend      │    │   Admin Panel   │    │   Backend API   │
+│   (Vercel)      │    │   (Vercel)      │    │   (Render)      │
+│                 │    │                 │    │                 │
+│ • React App     │◄──►│ • Admin React   │◄──►│ • Express.js    │
+│ • User Interface│    │ • Management UI │    │ • REST APIs     │
+│ • Video Calls   │    │ • Analytics     │    │ • Socket.io     │
+└─────────────────┘    └─────────────────┘    └─────────────────┘
+         │                       │                       │
+         └───────────────────────┼───────────────────────┘
+                                 │
+                    ┌─────────────────┐
+                    │   MongoDB       │
+                    │   (Atlas)       │
+                    │                 │
+                    │ • User Data     │
+                    │ • Questions     │
+                    │ • Interviews    │
+                    │ • Payments      │
+                    └─────────────────┘
 ```
 
-### 2. Install Dependencies
-```bash
-# Install root dependencies
-npm install
+## 🚀 Installation
 
-# Install server dependencies
+### Prerequisites
+- Node.js (v16 or higher)
+- MongoDB Atlas account
+- Razorpay account (for payments)
+
+### Clone Repository
+```bash
+git clone https://github.com/lahori-venkatesh/mockinterview.git
+cd mockinterview
+```
+
+### Backend Setup
+```bash
 cd server
 npm install
-
-# Install client dependencies
-cd ../client
-npm install
+cp .env.example .env
+# Configure environment variables in .env
+npm run dev
 ```
 
-### 3. Environment Configuration
+### Frontend Setup
+```bash
+cd client
+npm install
+cp .env.development.example .env.development
+# Configure environment variables
+npm start
+```
 
-Create a `.env` file in the `server` directory:
+### Admin Panel Setup
+```bash
+cd admin-panel
+npm install
+cp .env.development.example .env.development
+# Configure environment variables
+npm start
+```
 
+## 🔧 Environment Setup
+
+### Backend Environment Variables (.env)
 ```env
+# Server Configuration
 PORT=5001
-MONGODB_URI=mongodb://localhost:27017/student-interview
-# OR for MongoDB Atlas:
-# MONGODB_URI=mongodb+srv://username:password@cluster.mongodb.net/student-interview
-
-JWT_SECRET=your-super-secret-jwt-key-here-make-this-more-secure-in-production
 NODE_ENV=development
+
+# Database
+MONGODB_URI=mongodb+srv://username:password@cluster.mongodb.net/student-interview
+
+# JWT
+JWT_SECRET=your-super-secret-jwt-key
+
+# Razorpay
+RAZORPAY_KEY_ID=rzp_test_your_key_id
+RAZORPAY_KEY_SECRET=your_razorpay_key_secret
+
+# CORS
+CORS_ORIGIN=http://localhost:3000
 ```
 
-### 4. Database Setup
-
-#### Option A: Local MongoDB
-1. Install MongoDB locally
-2. Start MongoDB service
-3. Use connection string: `mongodb://localhost:27017/student-interview`
-
-#### Option B: MongoDB Atlas (Recommended)
-1. Create account at [MongoDB Atlas](https://www.mongodb.com/atlas)
-2. Create a new cluster
-3. Get connection string and update `MONGODB_URI` in `.env`
-
-### 5. Populate Sample Data (Optional)
-```bash
-cd server
-node add-dummy-data.js
-```
-
-This creates sample users for testing:
-- Email: `alex.johnson@example.com`, Password: `password123`
-- Email: `sarah.chen@example.com`, Password: `password123`
-- And 6 more test accounts...
-
-## 🏃‍♂️ Running the Application
-
-### Development Mode (Recommended)
-```bash
-# From root directory - runs both client and server
-npm run dev
-```
-
-### Manual Start
-```bash
-# Terminal 1 - Start server
-cd server
-npm run dev
-
-# Terminal 2 - Start client
-cd client
-npm start
-```
-
-### Production Mode
-```bash
-# Build client
-cd client
-npm run build
-
-# Start server
-cd ../server
-npm start
-```
-
-## 🌐 Application URLs
-
-- **Frontend**: http://localhost:3000
-- **Backend API**: http://localhost:5001
-- **Health Check**: http://localhost:5001/api/health
-
-## 📱 Usage Guide
-
-### Getting Started
-1. **Register** - Create a new account
-2. **Profile Setup** - Complete the 4-step onboarding
-3. **Find Matches** - Browse available interview partners
-4. **Start Interview** - Select questions and begin session
-
-### Interview Process
-1. **Role Assignment** - Automatic interviewer/interviewee assignment
-2. **Video Setup** - Camera and microphone permissions
-3. **Question Phase** - 45 minutes per role
-4. **Role Switch** - Automatic role reversal
-5. **Feedback** - Rate and review your partner
-
-### Account Management
-- **Profile Settings** - Update skills, experience, bio
-- **Account Settings** - Change password, privacy settings
-- **Security** - Two-factor authentication (coming soon)
-
-## 🔧 API Endpoints
-
-### Authentication
-- `POST /api/auth/register` - User registration
-- `POST /api/auth/login` - User login
-- `POST /api/auth/forgot-password` - Password reset request
-- `POST /api/auth/reset-password` - Password reset
-- `PUT /api/auth/change-password` - Change password
-- `DELETE /api/auth/delete-account` - Delete account
-
-### Users
-- `GET /api/users/profile` - Get user profile
-- `PUT /api/users/profile` - Update profile
-- `GET /api/users/matches` - Find interview partners
-- `PUT /api/users/status` - Update online status
-- `POST /api/users/upload-profile-picture` - Upload avatar
-- `PUT /api/users/settings` - Update user settings
-
-### Interviews
-- `POST /api/interviews/create` - Create interview room
-- `POST /api/interviews/join/:roomId` - Join interview
-- `POST /api/interviews/:roomId/feedback` - Submit feedback
-- `POST /api/interviews/:roomId/report` - Report user
-- `GET /api/interviews/history` - Interview history
-
-### Questions
-- `GET /api/questions/:domain` - Get questions by domain
-- `GET /api/questions/:domain/random` - Random questions
-
-## 🏗️ Project Structure
-
-```
-student-interview-platform/
-├── client/                 # React frontend
-│   ├── public/
-│   ├── src/
-│   │   ├── components/     # Reusable components
-│   │   ├── contexts/       # React contexts
-│   │   ├── pages/          # Page components
-│   │   └── theme.js        # MUI theme
-│   └── package.json
-├── server/                 # Node.js backend
-│   ├── middleware/         # Express middleware
-│   ├── models/            # Mongoose models
-│   ├── routes/            # API routes
-│   ├── uploads/           # File uploads
-│   └── index.js           # Server entry point
-├── package.json           # Root package.json
-└── README.md
-```
-
-## 🔒 Security Features
-
-### Authentication
-- JWT tokens with expiration
-- Password hashing with bcrypt
-- Secure password reset flow
-
-### Interview Security
-- Screen recording prevention
-- Tab switching monitoring
-- Behavioral guidelines enforcement
-- Reporting system for violations
-
-### Data Protection
-- Input validation and sanitization
-- File upload restrictions
-- CORS configuration
-- Rate limiting (recommended for production)
-
-## 🚀 Deployment
-
-### Environment Variables (Production)
+### Frontend Environment Variables (.env.development)
 ```env
-NODE_ENV=production
-PORT=5001
-MONGODB_URI=your-production-mongodb-uri
-JWT_SECRET=your-very-secure-jwt-secret-key
+REACT_APP_API_URL=http://localhost:5001
+REACT_APP_RAZORPAY_KEY_ID=rzp_test_your_key_id
 ```
 
-### Deployment Platforms
-- **Heroku** - Easy deployment with MongoDB Atlas
-- **Vercel** - Frontend deployment
-- **Railway** - Full-stack deployment
-- **DigitalOcean** - VPS deployment
+### Admin Panel Environment Variables (.env.development)
+```env
+REACT_APP_API_URL=http://localhost:5001
+```
 
-### Production Checklist
-- [ ] Set strong JWT secret
-- [ ] Configure MongoDB Atlas
-- [ ] Enable HTTPS
-- [ ] Set up email service for password reset
-- [ ] Configure file storage (AWS S3, Cloudinary)
-- [ ] Add rate limiting
-- [ ] Set up monitoring and logging
+## 📖 Usage
+
+### For Users
+1. **Register/Login** - Create account or sign in
+2. **Complete Profile** - Add skills, domain, and experience
+3. **Find Match** - Get matched with interview partners
+4. **Conduct Interview** - Join video call and practice
+5. **Review Performance** - Check feedback and analytics
+6. **Upgrade to Premium** - Access advanced features
+
+### For Admins
+1. **Admin Login** - Access admin panel
+2. **Manage Users** - View and moderate user accounts
+3. **Manage Questions** - Add/edit interview questions
+4. **View Analytics** - Monitor platform statistics
+5. **Handle Reports** - Moderate reported users
+
+## 📚 API Documentation
+
+### Authentication Endpoints
+```
+POST /api/auth/register     - User registration
+POST /api/auth/login        - User login
+POST /api/auth/forgot-password - Password reset
+```
+
+### User Endpoints
+```
+GET  /api/users/profile     - Get user profile
+PUT  /api/users/profile     - Update user profile
+GET  /api/users/search      - Search users
+```
+
+### Interview Endpoints
+```
+POST /api/interviews/create - Create interview session
+GET  /api/interviews/history - Get interview history
+PUT  /api/interviews/feedback - Submit feedback
+```
+
+### Payment Endpoints
+```
+GET  /api/payment/plans     - Get pricing plans
+POST /api/payment/create-order - Create payment order
+POST /api/payment/verify-payment - Verify payment
+```
+
+### Admin Endpoints
+```
+GET  /api/admin/users       - Get all users
+GET  /api/admin/analytics   - Get platform analytics
+POST /api/admin/questions   - Add new question
+PUT  /api/admin/promote-user - Promote user to admin
+```
+
+## 🔐 Admin Panel
+
+The admin panel provides comprehensive management capabilities:
+
+### Features
+- **Dashboard Analytics** - User statistics, interview metrics
+- **User Management** - View, search, delete users
+- **Question Management** - CRUD operations for interview questions
+- **Admin Management** - Create, promote, demote admins
+- **Payment Tracking** - Monitor premium subscriptions
+- **Reported Users** - Handle user reports and moderation
+
+### Access
+- **URL**: [https://mockadmin.vercel.app/](https://mockadmin.vercel.app/)
+- **Login**: Admin credentials required
+- **Security**: Role-based access control
+
+## 💎 Premium Features
+
+### Monthly Plan - ₹299/month
+- Unlimited mock interviews
+- Priority matching
+- Advanced analytics
+- Premium support
+
+### Yearly Plan - ₹1999/year
+- All monthly features
+- Save ₹1589 annually
+- Extended premium support
+- Early access to new features
+
+### Payment Integration
+- **Razorpay** secure payment processing
+- **Instant activation** after successful payment
+- **Payment history** tracking
+- **Automatic renewal** options
 
 ## 🤝 Contributing
 
-1. Fork the repository
-2. Create feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit changes (`git commit -m 'Add amazing feature'`)
-4. Push to branch (`git push origin feature/amazing-feature`)
-5. Open Pull Request
+We welcome contributions from the community! Here's how you can help:
 
-## 📝 License
+### How to Contribute
+1. **Fork the repository**
+2. **Create a feature branch** (`git checkout -b feature/AmazingFeature`)
+3. **Commit your changes** (`git commit -m 'Add some AmazingFeature'`)
+4. **Push to the branch** (`git push origin feature/AmazingFeature`)
+5. **Open a Pull Request**
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+### Contribution Guidelines
+- Follow the existing code style
+- Write clear commit messages
+- Add tests for new features
+- Update documentation as needed
+- Ensure all tests pass
 
-## 🐛 Troubleshooting
+### Areas for Contribution
+- 🐛 Bug fixes
+- ✨ New features
+- 📚 Documentation improvements
+- 🎨 UI/UX enhancements
+- 🔧 Performance optimizations
+- 🧪 Test coverage improvements
 
-### Common Issues
+### Contributors
 
-**MongoDB Connection Error**
-```bash
-# Check if MongoDB is running
-mongosh
-# Or check Atlas connection string
+We appreciate all contributors who help make this project better:
+
+- **[Lahori Venkatesh](mailto:lahorivenkatesh709@gmail.com)** - Project Creator & Lead Developer
+
+*More contributors will be added as the project grows. Join us in building the future of interview preparation!*
+
+## 📄 License
+
+This project is licensed under the **MIT License with Additional Terms**.
+
+### MIT License Terms
+```
+MIT License
+
+Copyright (c) 2024 Lahori Venkatesh
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
 ```
 
-**Port Already in Use**
-```bash
-# Kill process on port 5001
-lsof -ti:5001 | xargs kill -9
-```
+### Additional Terms
+1. **Attribution Required** - Any derivative work must credit the original author
+2. **Commercial Use** - Commercial use requires explicit permission from the author
+3. **Trademark** - The "MockInterview" name and branding are protected
+4. **Data Privacy** - Any deployment must comply with applicable data protection laws
 
-**Camera/Microphone Issues**
-- Ensure HTTPS in production
-- Check browser permissions
-- Test with different browsers
+## 👨‍💻 Author
 
-**Build Errors**
-```bash
-# Clear node_modules and reinstall
-rm -rf node_modules package-lock.json
-npm install
-```
+**Lahori Venkatesh**
+- 📧 Email: [lahorivenkatesh709@gmail.com](mailto:lahorivenkatesh709@gmail.com)
+- 🐙 GitHub: [@lahori-venkatesh](https://github.com/lahori-venkatesh)
+- 💼 LinkedIn: [Connect with me](https://linkedin.com/in/lahori-venkatesh)
+- 🌐 Portfolio: [View my work](https://lahorivenkatesh.dev)
 
-## 📞 Support
-
-For support and questions:
-- Create an issue on GitHub
-- Check existing documentation
-- Review troubleshooting guide
-
-## 🎯 Future Enhancements
-
-- [ ] Mobile app (React Native)
-- [ ] AI-powered question generation
-- [ ] Advanced analytics dashboard
-- [ ] Integration with coding platforms
-- [ ] Group interview sessions
-- [ ] Whiteboard collaboration
-- [ ] Interview scheduling system
-- [ ] Payment integration for premium features
+### About the Creator
+Passionate full-stack developer with expertise in modern web technologies. Created MockInterview to help developers practice and improve their interview skills through peer-to-peer learning.
 
 ---
 
-**Built with ❤️ for the developer community**
+## 🚀 Quick Start
+
+1. **Visit the platform**: [https://mockwithpeers.vercel.app/](https://mockwithpeers.vercel.app/)
+2. **Create an account** and complete your profile
+3. **Find a match** and start practicing interviews
+4. **Upgrade to premium** for unlimited access
+5. **Join our community** and help others improve
+
+## 📞 Support
+
+Need help? We're here for you:
+
+- 📧 **Email Support**: [lahorivenkatesh709@gmail.com](mailto:lahorivenkatesh709@gmail.com)
+- 🐛 **Bug Reports**: [GitHub Issues](https://github.com/lahori-venkatesh/mockinterview/issues)
+- 💡 **Feature Requests**: [GitHub Discussions](https://github.com/lahori-venkatesh/mockinterview/discussions)
+- 📚 **Documentation**: [Project Wiki](https://github.com/lahori-venkatesh/mockinterview/wiki)
+
+---
+
+<div align="center">
+
+**⭐ Star this repository if you find it helpful!**
+
+Made with ❤️ by [Lahori Venkatesh](https://github.com/lahori-venkatesh)
+
+</div>
