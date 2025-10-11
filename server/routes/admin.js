@@ -278,4 +278,39 @@ router.get('/reports', auth, adminAuth, async (req, res) => {
   }
 });
 
+// Debug endpoint to check database connection
+router.get('/debug-db', auth, adminAuth, async (req, res) => {
+  try {
+    const mongoose = require('mongoose');
+    const dbName = mongoose.connection.db.databaseName;
+    
+    // Get collection info
+    const collections = await mongoose.connection.db.listCollections().toArray();
+    const collectionNames = collections.map(c => c.name);
+    
+    // Count documents
+    const userCount = await User.countDocuments();
+    const questionCount = await Question.countDocuments();
+    const interviewCount = await Interview.countDocuments();
+    
+    // Sample users
+    const sampleUsers = await User.find({}, 'name email role').limit(5);
+    
+    res.json({
+      database: dbName,
+      collections: collectionNames,
+      counts: {
+        users: userCount,
+        questions: questionCount,
+        interviews: interviewCount
+      },
+      sampleUsers: sampleUsers,
+      mongoUri: process.env.MONGODB_URI ? 'Set' : 'Not set',
+      nodeEnv: process.env.NODE_ENV
+    });
+  } catch (error) {
+    res.status(500).json({ message: 'Debug error', error: error.message });
+  }
+});
+
 module.exports = router;
