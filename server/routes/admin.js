@@ -278,4 +278,28 @@ router.get('/reports', auth, adminAuth, async (req, res) => {
   }
 });
 
+// Temporary endpoint to promote user to admin (remove after use)
+router.post('/promote-admin', async (req, res) => {
+  try {
+    const { email, secret } = req.body;
+    
+    // Simple secret check (you can remove this endpoint after use)
+    if (secret !== 'promote-admin-secret-2024') {
+      return res.status(403).json({ message: 'Invalid secret' });
+    }
+    
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+    
+    user.role = 'admin';
+    await user.save();
+    
+    res.json({ message: `User ${user.name} (${user.email}) is now an admin!` });
+  } catch (error) {
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+});
+
 module.exports = router;
