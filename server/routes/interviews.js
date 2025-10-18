@@ -2,6 +2,7 @@ const express = require('express');
 const mongoose = require('mongoose');
 const { v4: uuidv4 } = require('uuid');
 const Interview = require('../models/Interview');
+const Invitation = require('../models/Invitation');
 const User = require('../models/User');
 const auth = require('../middleware/auth');
 const router = express.Router();
@@ -57,6 +58,21 @@ router.post('/send-invitation', auth, async (req, res) => {
     };
 
     pendingInvitations.set(invitationId, invitation);
+
+    // Persist invitation for sender/participant visibility
+    try {
+      await Invitation.create({
+        invitationId,
+        interviewer: interviewer._id,
+        participant: participant._id,
+        domain,
+        selectedQuestions,
+        status: 'pending',
+        expiresAt: new Date(Date.now() + 5 * 60 * 1000)
+      });
+    } catch (e) {
+      console.warn('Failed to persist invitation:', e.message);
+    }
 
     // Send real-time invitation via Socket.io
     const io = req.app.get('io');
@@ -121,6 +137,9 @@ router.post('/respond-invitation/:invitationId', auth, async (req, res) => {
       // Remove invitation from pending
       pendingInvitations.delete(invitationId);
 
+      // Update persisted invitation status
+      await Invitation.findOneAndUpdate({ invitationId }, { status: 'accepted' });
+
       // Notify interviewer about acceptance
       if (io && connectedUsers.has(invitation.interviewer.id.toString())) {
         io.to(invitation.interviewer.id.toString()).emit('invitation-accepted', {
@@ -138,6 +157,9 @@ router.post('/respond-invitation/:invitationId', auth, async (req, res) => {
     } else {
       // Remove invitation from pending
       pendingInvitations.delete(invitationId);
+
+      // Update persisted invitation status
+      await Invitation.findOneAndUpdate({ invitationId }, { status: 'rejected' });
 
       // Notify interviewer about rejection
       if (io && connectedUsers.has(invitation.interviewer.id.toString())) {
@@ -170,6 +192,53 @@ router.get('/pending-invitations', auth, async (req, res) => {
     }
 
     res.json({ invitations: userInvitations });
+  } catch (error) {
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+});
+
+// List sent invitations for current user
+router.get('/sent-invitations', auth, async (req, res) => {
+  try {
+    const invites = await Invitation.find({ interviewer: req.userId })
+      .populate('participant', 'name email domain profilePicture')
+      .sort({ createdAt: -1 })
+      .limit(50);
+    res.json({ invitations: invites.map((inv) => ({
+      id: inv.invitationId,
+      recipient: {
+        id: inv.participant._id,
+        name: inv.participant.name,
+        domain: inv.participant.domain,
+        profilePicture: inv.participant.profilePicture
+      },
+      domain: inv.domain,
+      selectedQuestions: inv.selectedQuestions,
+      status: inv.status,
+      createdAt: inv.createdAt
+    })) });
+  } catch (error) {
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+});
+
+// Cancel a pending invitation sent by current user
+router.post('/cancel-invitation/:invitationId', auth, async (req, res) => {
+  try {
+    const { invitationId } = req.params;
+    const inv = await Invitation.findOne({ invitationId });
+    if (!inv) return res.status(404).json({ message: 'Invitation not found' });
+    if (inv.interviewer.toString() !== req.userId) {
+      return res.status(403).json({ message: 'Not authorized' });
+    }
+    if (inv.status !== 'pending') {
+      return res.status(400).json({ message: 'Only pending invitations can be cancelled' });
+    }
+    inv.status = 'cancelled';
+    await inv.save();
+    // Remove from in-memory pending map too
+    pendingInvitations.delete(invitationId);
+    res.json({ message: 'Invitation cancelled' });
   } catch (error) {
     res.status(500).json({ message: 'Server error', error: error.message });
   }

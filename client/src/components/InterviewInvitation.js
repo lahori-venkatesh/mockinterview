@@ -1,1 +1,220 @@
-import React, { useState, useEffect } from 'react';\nimport {\n  Dialog,\n  DialogTitle,\n  DialogContent,\n  DialogActions,\n  Button,\n  Typography,\n  Box,\n  Avatar,\n  Chip,\n  Alert,\n  CircularProgress,\n  LinearProgress\n} from '@mui/material';\nimport {\n  VideoCall,\n  Person,\n  Schedule,\n  Close\n} from '@mui/icons-material';\nimport { useNavigate } from 'react-router-dom';\nimport axios from 'axios';\nimport API_BASE_URL from '../config/api';\nimport { toast } from 'react-toastify';\n\nconst InterviewInvitation = ({ invitation, onClose, onRespond }) => {\n  const [loading, setLoading] = useState(false);\n  const [timeLeft, setTimeLeft] = useState(300); // 5 minutes in seconds\n  const navigate = useNavigate();\n\n  useEffect(() => {\n    if (!invitation) return;\n\n    const calculateTimeLeft = () => {\n      const now = new Date();\n      const expires = new Date(invitation.expiresAt);\n      const diff = Math.max(0, Math.floor((expires - now) / 1000));\n      setTimeLeft(diff);\n      \n      if (diff <= 0) {\n        toast.error('Interview invitation expired');\n        onClose();\n      }\n    };\n\n    calculateTimeLeft();\n    const timer = setInterval(calculateTimeLeft, 1000);\n\n    return () => clearInterval(timer);\n  }, [invitation, onClose]);\n\n  const handleResponse = async (response) => {\n    setLoading(true);\n    try {\n      const result = await axios.post(\n        `${API_BASE_URL}/api/interviews/respond-invitation/${invitation.id}`,\n        { response }\n      );\n\n      if (response === 'accept') {\n        toast.success('Interview invitation accepted!');\n        onRespond('accepted', result.data.roomId);\n        // Navigate to interview room\n        navigate(`/interview/${result.data.roomId}`);\n      } else {\n        toast.info('Interview invitation declined.');\n        onRespond('rejected');\n      }\n      \n      onClose();\n    } catch (error) {\n      console.error('Error responding to invitation:', error);\n      toast.error('Failed to respond to invitation');\n    } finally {\n      setLoading(false);\n    }\n  };\n\n  const formatTime = (seconds) => {\n    const minutes = Math.floor(seconds / 60);\n    const secs = seconds % 60;\n    return `${minutes}:${secs.toString().padStart(2, '0')}`;\n  };\n\n  const getProgressValue = () => {\n    return ((300 - timeLeft) / 300) * 100;\n  };\n\n  if (!invitation) return null;\n\n  return (\n    <Dialog\n      open={true}\n      onClose={onClose}\n      maxWidth=\"sm\"\n      fullWidth\n      PaperProps={{\n        sx: {\n          borderRadius: 3,\n          boxShadow: '0 20px 40px rgba(0,0,0,0.1)'\n        }\n      }}\n    >\n      <DialogTitle sx={{ \n        textAlign: 'center', \n        pb: 1,\n        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',\n        color: 'white'\n      }}>\n        <VideoCall sx={{ mr: 1, verticalAlign: 'middle' }} />\n        Interview Invitation\n      </DialogTitle>\n      \n      <DialogContent sx={{ pt: 3 }}>\n        <Alert severity=\"info\" sx={{ mb: 3 }}>\n          <Typography variant=\"body2\">\n            You have received an interview invitation!\n          </Typography>\n        </Alert>\n\n        {/* Time Remaining Progress */}\n        <Box sx={{ mb: 3 }}>\n          <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>\n            <Typography variant=\"body2\" color=\"textSecondary\">\n              Time remaining:\n            </Typography>\n            <Typography variant=\"body2\" color={timeLeft < 60 ? 'error' : 'textSecondary'}>\n              {formatTime(timeLeft)}\n            </Typography>\n          </Box>\n          <LinearProgress \n            variant=\"determinate\" \n            value={getProgressValue()} \n            color={timeLeft < 60 ? 'error' : 'primary'}\n            sx={{ height: 8, borderRadius: 4 }}\n          />\n        </Box>\n\n        {/* Interviewer Info */}\n        <Box sx={{ \n          display: 'flex', \n          alignItems: 'center', \n          p: 2, \n          bgcolor: 'grey.50', \n          borderRadius: 2,\n          mb: 2\n        }}>\n          <Avatar\n            src={invitation.interviewer.profilePicture ? \n              `${API_BASE_URL}${invitation.interviewer.profilePicture}` : ''}\n            sx={{ width: 60, height: 60, mr: 2 }}\n          >\n            {invitation.interviewer.name.charAt(0).toUpperCase()}\n          </Avatar>\n          <Box sx={{ flexGrow: 1 }}>\n            <Typography variant=\"h6\" gutterBottom>\n              {invitation.interviewer.name}\n            </Typography>\n            <Typography variant=\"body2\" color=\"textSecondary\" gutterBottom>\n              {invitation.interviewer.domain} • {invitation.interviewer.email}\n            </Typography>\n            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, mt: 1 }}>\n              {invitation.interviewer.skills?.slice(0, 3).map((skill) => (\n                <Chip key={skill} label={skill} size=\"small\" variant=\"outlined\" />\n              ))}\n            </Box>\n          </Box>\n        </Box>\n\n        {/* Interview Details */}\n        <Box sx={{ mb: 2 }}>\n          <Typography variant=\"subtitle2\" gutterBottom>\n            Interview Details:\n          </Typography>\n          <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>\n            <Person sx={{ mr: 1, color: 'text.secondary' }} />\n            <Typography variant=\"body2\">\n              Domain: {invitation.domain}\n            </Typography>\n          </Box>\n          <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>\n            <Schedule sx={{ mr: 1, color: 'text.secondary' }} />\n            <Typography variant=\"body2\">\n              Questions: {invitation.selectedQuestions?.length || 0} selected\n            </Typography>\n          </Box>\n        </Box>\n\n        <Typography variant=\"body2\" color=\"textSecondary\" sx={{ textAlign: 'center' }}>\n          Would you like to join this interview session?\n        </Typography>\n      </DialogContent>\n\n      <DialogActions sx={{ p: 3, pt: 1 }}>\n        <Button\n          onClick={() => handleResponse('reject')}\n          disabled={loading}\n          variant=\"outlined\"\n          color=\"error\"\n          startIcon={<Close />}\n          sx={{ mr: 1 }}\n        >\n          Decline\n        </Button>\n        <Button\n          onClick={() => handleResponse('accept')}\n          disabled={loading}\n          variant=\"contained\"\n          color=\"primary\"\n          startIcon={loading ? <CircularProgress size={20} /> : <VideoCall />}\n          sx={{ \n            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',\n            '&:hover': {\n              background: 'linear-gradient(135deg, #5a6fd8 0%, #6a4190 100%)'\n            }\n          }}\n        >\n          {loading ? 'Joining...' : 'Accept & Join'}\n        </Button>\n      </DialogActions>\n    </Dialog>\n  );\n};\n\nexport default InterviewInvitation;"
+import React, { useState, useEffect } from 'react';
+import {
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Button,
+  Typography,
+  Box,
+  Avatar,
+  Chip,
+  Alert,
+  CircularProgress,
+  LinearProgress
+} from '@mui/material';
+import {
+  VideoCall,
+  Person,
+  Schedule,
+  Close
+} from '@mui/icons-material';
+import { useNavigate } from 'react-router-dom';
+import axios from 'axios';
+import API_BASE_URL from '../config/api';
+import { toast } from 'react-toastify';
+
+const InterviewInvitation = ({ invitation, onClose, onRespond }) => {
+  const [loading, setLoading] = useState(false);
+  const [timeLeft, setTimeLeft] = useState(300);
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (!invitation) return;
+
+    const calculateTimeLeft = () => {
+      const now = new Date();
+      const expires = new Date(invitation.expiresAt);
+      const diff = Math.max(0, Math.floor((expires - now) / 1000));
+      setTimeLeft(diff);
+
+      if (diff <= 0) {
+        toast.error('Interview invitation expired');
+        onClose();
+      }
+    };
+
+    calculateTimeLeft();
+    const timer = setInterval(calculateTimeLeft, 1000);
+    return () => clearInterval(timer);
+  }, [invitation, onClose]);
+
+  const handleResponse = async (response) => {
+    setLoading(true);
+    try {
+      const result = await axios.post(
+        `${API_BASE_URL}/api/interviews/respond-invitation/${invitation.id}`,
+        { response }
+      );
+
+      if (response === 'accept') {
+        toast.success('Interview invitation accepted!');
+        onRespond('accepted', result.data.roomId);
+        navigate(`/interview/${result.data.roomId}`);
+      } else {
+        toast.info('Interview invitation declined.');
+        onRespond('rejected');
+      }
+
+      onClose();
+    } catch (error) {
+      console.error('Error responding to invitation:', error);
+      toast.error('Failed to respond to invitation');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const formatTime = (seconds) => {
+    const minutes = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${minutes}:${secs.toString().padStart(2, '0')}`;
+  };
+
+  const getProgressValue = () => ((300 - timeLeft) / 300) * 100;
+
+  if (!invitation) return null;
+
+  return (
+    <Dialog
+      open
+      onClose={onClose}
+      maxWidth="sm"
+      fullWidth
+      PaperProps={{
+        sx: {
+          borderRadius: 3,
+          boxShadow: '0 20px 40px rgba(0,0,0,0.1)'
+        }
+      }}
+    >
+      <DialogTitle
+        sx={{
+          textAlign: 'center',
+          pb: 1,
+          background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+          color: 'white'
+        }}
+      >
+        <VideoCall sx={{ mr: 1, verticalAlign: 'middle' }} />
+        Interview Invitation
+      </DialogTitle>
+
+      <DialogContent sx={{ pt: 3 }}>
+        <Alert severity="info" sx={{ mb: 3 }}>
+          <Typography variant="body2">
+            You have received an interview invitation!
+          </Typography>
+        </Alert>
+
+        <Box sx={{ mb: 3 }}>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
+            <Typography variant="body2" color="textSecondary">
+              Time remaining:
+            </Typography>
+            <Typography variant="body2" color={timeLeft < 60 ? 'error' : 'textSecondary'}>
+              {formatTime(timeLeft)}
+            </Typography>
+          </Box>
+          <LinearProgress
+            variant="determinate"
+            value={getProgressValue()}
+            color={timeLeft < 60 ? 'error' : 'primary'}
+            sx={{ height: 8, borderRadius: 4 }}
+          />
+        </Box>
+
+        <Box
+          sx={{
+            display: 'flex',
+            alignItems: 'center',
+            p: 2,
+            bgcolor: 'grey.50',
+            borderRadius: 2,
+            mb: 2
+          }}
+        >
+          <Avatar
+            src={invitation.interviewer.profilePicture ? `${API_BASE_URL}${invitation.interviewer.profilePicture}` : ''}
+            sx={{ width: 60, height: 60, mr: 2 }}
+          >
+            {invitation.interviewer.name.charAt(0).toUpperCase()}
+          </Avatar>
+          <Box sx={{ flexGrow: 1 }}>
+            <Typography variant="h6" gutterBottom>
+              {invitation.interviewer.name}
+            </Typography>
+            <Typography variant="body2" color="textSecondary" gutterBottom>
+              {invitation.interviewer.domain} • {invitation.interviewer.email}
+            </Typography>
+            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, mt: 1 }}>
+              {invitation.interviewer.skills?.slice(0, 3).map((skill) => (
+                <Chip key={skill} label={skill} size="small" variant="outlined" />
+              ))}
+            </Box>
+          </Box>
+        </Box>
+
+        <Box sx={{ mb: 2 }}>
+          <Typography variant="subtitle2" gutterBottom>
+            Interview Details:
+          </Typography>
+          <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+            <Person sx={{ mr: 1, color: 'text.secondary' }} />
+            <Typography variant="body2">Domain: {invitation.domain}</Typography>
+          </Box>
+          <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+            <Schedule sx={{ mr: 1, color: 'text.secondary' }} />
+            <Typography variant="body2">
+              Questions: {invitation.selectedQuestions?.length || 0} selected
+            </Typography>
+          </Box>
+        </Box>
+
+        <Typography variant="body2" color="textSecondary" sx={{ textAlign: 'center' }}>
+          Would you like to join this interview session?
+        </Typography>
+      </DialogContent>
+
+      <DialogActions sx={{ p: 3, pt: 1 }}>
+        <Button
+          onClick={() => handleResponse('reject')}
+          disabled={loading}
+          variant="outlined"
+          color="error"
+          startIcon={<Close />}
+          sx={{ mr: 1 }}
+        >
+          Decline
+        </Button>
+        <Button
+          onClick={() => handleResponse('accept')}
+          disabled={loading}
+          variant="contained"
+          color="primary"
+          startIcon={loading ? <CircularProgress size={20} /> : <VideoCall />}
+          sx={{
+            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+            '&:hover': {
+              background: 'linear-gradient(135deg, #5a6fd8 0%, #6a4190 100%)'
+            }
+          }}
+        >
+          {loading ? 'Joining...' : 'Accept & Join'}
+        </Button>
+      </DialogActions>
+    </Dialog>
+  );
+};
+
+export default InterviewInvitation;

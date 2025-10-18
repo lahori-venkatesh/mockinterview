@@ -102,10 +102,13 @@ const AdminDashboard = () => {
   );
 
   return (
-    <Container maxWidth="xl" sx={{ mt: 4, mb: 4 }}>
-      <Typography variant="h4" gutterBottom>
-        Admin Dashboard
-      </Typography>
+    <Container maxWidth="xl" sx={{ mt: 4, mb: 6 }}>
+      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 3, flexWrap: 'wrap', gap: 2 }}>
+        <Box>
+          <Typography variant="h4" sx={{ fontWeight: 800 }}>Admin Dashboard</Typography>
+          <Typography variant="body2" color="textSecondary">Overview of platform health and operations</Typography>
+        </Box>
+      </Box>
 
       {error && (
         <Alert severity="error" sx={{ mb: 3 }}>
@@ -152,7 +155,7 @@ const AdminDashboard = () => {
       )}
 
       {/* Admin Tabs */}
-      <Paper sx={{ width: '100%' }}>
+      <Paper sx={{ width: '100%', borderRadius: 3, boxShadow: '0 8px 32px rgba(0,0,0,0.06)' }}>
         <Tabs
           value={currentTab}
           onChange={handleTabChange}

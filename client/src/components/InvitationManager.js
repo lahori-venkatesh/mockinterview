@@ -1,1 +1,80 @@
-import React, { useState, useEffect } from 'react';\nimport { useNavigate } from 'react-router-dom';\nimport InterviewInvitation from './InterviewInvitation';\nimport { toast } from 'react-toastify';\nimport axios from 'axios';\nimport API_BASE_URL from '../config/api';\nimport { useSocket } from '../contexts/SocketContext';\nimport { useAuth } from '../contexts/AuthContext';\n\nconst InvitationManager = () => {\n  const [currentInvitation, setCurrentInvitation] = useState(null);\n  const { socket } = useSocket();\n  const { user } = useAuth();\n  const navigate = useNavigate();\n\n  useEffect(() => {\n    if (!socket || !user) return;\n\n    // Listen for interview invitations\n    const handleInvitation = (invitation) => {\n      console.log('Received interview invitation:', invitation);\n      setCurrentInvitation(invitation);\n      \n      // Show notification\n      toast.info(`Interview invitation from ${invitation.interviewer.name}!`, {\n        autoClose: false,\n        closeOnClick: false\n      });\n    };\n\n    socket.on('interview-invitation', handleInvitation);\n\n    // Check for existing pending invitations on mount\n    checkPendingInvitations();\n\n    return () => {\n      socket.off('interview-invitation', handleInvitation);\n    };\n  }, [socket, user]);\n\n  const checkPendingInvitations = async () => {\n    try {\n      const response = await axios.get(`${API_BASE_URL}/api/interviews/pending-invitations`);\n      if (response.data.invitations.length > 0) {\n        setCurrentInvitation(response.data.invitations[0]);\n      }\n    } catch (error) {\n      console.error('Error checking pending invitations:', error);\n    }\n  };\n\n  const handleInvitationClose = () => {\n    setCurrentInvitation(null);\n    toast.dismiss(); // Dismiss any notification toasts\n  };\n\n  const handleInvitationRespond = (response, roomId) => {\n    setCurrentInvitation(null);\n    toast.dismiss(); // Dismiss any notification toasts\n    \n    if (response === 'accepted' && roomId) {\n      navigate(`/interview/${roomId}`);\n    }\n  };\n\n  return (\n    <>\n      {currentInvitation && (\n        <InterviewInvitation\n          invitation={currentInvitation}\n          onClose={handleInvitationClose}\n          onRespond={handleInvitationRespond}\n        />\n      )}\n    </>\n  );\n};\n\nexport default InvitationManager;"
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import InterviewInvitation from './InterviewInvitation';
+import { toast } from 'react-toastify';
+import axios from 'axios';
+import API_BASE_URL from '../config/api';
+import { useSocket } from '../contexts/SocketContext';
+import { useAuth } from '../contexts/AuthContext';
+
+const InvitationManager = () => {
+  const [currentInvitation, setCurrentInvitation] = useState(null);
+  const { socket } = useSocket();
+  const { user } = useAuth();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (!socket || !user) return;
+
+    const handleInvitation = (invitation) => {
+      console.log('Received interview invitation:', invitation);
+      setCurrentInvitation(invitation);
+
+      toast.info(`Interview invitation from ${invitation.interviewer.name}!`, {
+        autoClose: false,
+        closeOnClick: false
+      });
+    };
+
+    socket.on('interview-invitation', handleInvitation);
+
+    checkPendingInvitations();
+
+    return () => {
+      socket.off('interview-invitation', handleInvitation);
+    };
+  }, [socket, user]);
+
+  const checkPendingInvitations = async () => {
+    try {
+      const response = await axios.get(`${API_BASE_URL}/api/interviews/pending-invitations`);
+      if (response.data.invitations.length > 0) {
+        setCurrentInvitation(response.data.invitations[0]);
+      }
+    } catch (error) {
+      console.error('Error checking pending invitations:', error);
+    }
+  };
+
+  const handleInvitationClose = () => {
+    setCurrentInvitation(null);
+    toast.dismiss();
+  };
+
+  const handleInvitationRespond = (response, roomId) => {
+    setCurrentInvitation(null);
+    toast.dismiss();
+
+    if (response === 'accepted' && roomId) {
+      navigate(`/interview/${roomId}`);
+    }
+  };
+
+  return (
+    <>
+      {currentInvitation && (
+        <InterviewInvitation
+          invitation={currentInvitation}
+          onClose={handleInvitationClose}
+          onRespond={handleInvitationRespond}
+        />
+      )}
+    </>
+  );
+};
+
+export default InvitationManager;
+
+
+
+

@@ -25,24 +25,12 @@ const theme = createTheme({
   },
   typography: {
     fontFamily: '"Inter", "Roboto", "Helvetica", "Arial", sans-serif',
-    h1: {
-      fontWeight: 700,
-    },
-    h2: {
-      fontWeight: 700,
-    },
-    h3: {
-      fontWeight: 700,
-    },
-    h4: {
-      fontWeight: 600,
-    },
-    h5: {
-      fontWeight: 600,
-    },
-    h6: {
-      fontWeight: 600,
-    },
+    h1: { fontWeight: 800 },
+    h2: { fontWeight: 800 },
+    h3: { fontWeight: 800 },
+    h4: { fontWeight: 800 },
+    h5: { fontWeight: 700 },
+    h6: { fontWeight: 700 },
     button: {
       textTransform: 'none',
       fontWeight: 500,

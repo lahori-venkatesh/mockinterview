@@ -12,7 +12,13 @@ import {
   Paper,
   LinearProgress,
   IconButton,
-  Divider
+  Divider,
+  List,
+  ListItem,
+  ListItemAvatar,
+  ListItemText,
+  ListItemSecondaryAction,
+  Stack
 } from '@mui/material';
 import {
   PlayArrow as PlayIcon,
@@ -24,23 +30,87 @@ import {
   EmojiEvents as TrophyIcon,
   Upgrade as UpgradeIcon
 } from '@mui/icons-material';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { useSocket } from '../contexts/SocketContext';
 import axios from 'axios';
 import API_BASE_URL from '../config/api';
+import {
+  ResponsiveContainer,
+  AreaChart,
+  Area,
+  XAxis,
+  YAxis,
+  Tooltip
+} from 'recharts';
 
 const Dashboard = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+  const { socket } = useSocket();
   const [stats, setStats] = useState({
     totalInterviews: 0,
     rating: 0,
     onlineUsers: 0
   });
+  const [invitations, setInvitations] = useState([]);
+  const [sentInvitations, setSentInvitations] = useState([]);
+  const [trendData, setTrendData] = useState([
+    { name: 'Mon', interviews: 0, score: 0 },
+    { name: 'Tue', interviews: 0, score: 0 },
+    { name: 'Wed', interviews: 0, score: 0 },
+    { name: 'Thu', interviews: 0, score: 0 },
+    { name: 'Fri', interviews: 0, score: 0 },
+    { name: 'Sat', interviews: 0, score: 0 },
+    { name: 'Sun', interviews: 0, score: 0 }
+  ]);
 
   useEffect(() => {
     fetchStats();
+    fetchPendingInvitations();
+    fetchSentInvitations();
   }, []);
+
+  useEffect(() => {
+    // When navigated with focus=sent-invitations, scroll to the sent section
+    const params = new URLSearchParams(location.search);
+    const focus = params.get('focus');
+    if (focus === 'sent-invitations') {
+      const el = document.getElementById('sent-invitations-section');
+      if (el) {
+        setTimeout(() => el.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100);
+      }
+    }
+  }, [location.search]);
+
+  // Hydrate sent invitations immediately if navigation state or sessionStorage has the recent one
+  useEffect(() => {
+    const navState = location.state || {};
+    const recentFromState = navState.recentlySentInvitation;
+    let recent = recentFromState;
+    if (!recent) {
+      try {
+        const s = window.sessionStorage.getItem('recentSentInvitation');
+        if (s) recent = JSON.parse(s);
+      } catch (_) {}
+    }
+    if (recent && !sentInvitations.find((i) => (i.id || i._id) === (recent.id || recent._id))) {
+      setSentInvitations((prev) => [recent, ...prev]);
+    }
+  }, [location.state, sentInvitations]);
+
+  useEffect(() => {
+    if (!socket) return;
+    const handleInvitation = (invitation) => {
+      setInvitations((prev) => {
+        const exists = prev.some((i) => i.id === invitation.id);
+        return exists ? prev : [invitation, ...prev];
+      });
+    };
+    socket.on('interview-invitation', handleInvitation);
+    return () => socket.off('interview-invitation', handleInvitation);
+  }, [socket]);
 
   const fetchStats = async () => {
     try {
@@ -50,6 +120,9 @@ const Dashboard = () => {
         rating: user?.rating || 0,
         onlineUsers: response.data.onlineUsers || 0
       });
+      if (response.data.trends) {
+        setTrendData(response.data.trends);
+      }
     } catch (error) {
       console.error('Error fetching stats:', error);
       // Fallback to user data
@@ -58,6 +131,41 @@ const Dashboard = () => {
         rating: user?.rating || 0,
         onlineUsers: 0
       });
+    }
+  };
+
+  const fetchPendingInvitations = async () => {
+    try {
+      const response = await axios.get(`${API_BASE_URL}/api/interviews/pending-invitations`);
+      setInvitations(response.data.invitations || []);
+    } catch (error) {
+      setInvitations([]);
+    }
+  };
+
+  const fetchSentInvitations = async () => {
+    try {
+      const response = await axios.get(`${API_BASE_URL}/api/interviews/sent-invitations`);
+      setSentInvitations(response.data.invitations || []);
+    } catch (error) {
+      setSentInvitations([]);
+    }
+  };
+
+  const handleRespondInvitation = async (invitationId, responseAction) => {
+    try {
+      const res = await axios.post(
+        `${API_BASE_URL}/api/interviews/respond-invitation/${invitationId}`,
+        { response: responseAction }
+      );
+      if (responseAction === 'accept') {
+        const roomId = res?.data?.roomId;
+        if (roomId) navigate(`/interview/${roomId}`);
+      }
+    } catch (e) {
+      // ignore for now
+    } finally {
+      setInvitations((prev) => prev.filter((i) => i.id !== invitationId));
     }
   };
 
@@ -116,9 +224,11 @@ const Dashboard = () => {
                     <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
                       {user?.name}
                     </Typography>
-                    <Typography sx={{ opacity: 0.9 }}>
-                      {user?.domain} Developer
-                    </Typography>
+                    {user?.domain && (
+                      <Typography variant="body2" sx={{ opacity: 0.9 }}>
+                        {user.domain}
+                      </Typography>
+                    )}
                     {user?.isPremium && (
                       <Chip 
                         label="Premium" 
@@ -138,16 +248,27 @@ const Dashboard = () => {
                 
                 <Box mb={2}>
                   <Typography variant="body2" sx={{ opacity: 0.9, mb: 1 }}>
-                    Experience Level:
+                    Experience Level
                   </Typography>
                   <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
                     {user?.experience}
                   </Typography>
                 </Box>
-                
+
+                {user?.bio && (
+                  <Box mb={2}>
+                    <Typography variant="body2" sx={{ opacity: 0.9, mb: 1 }}>
+                      Bio
+                    </Typography>
+                    <Typography variant="body2" sx={{ opacity: 0.85, lineHeight: 1.5 }}>
+                      {user.bio.length > 100 ? `${user.bio.substring(0, 100)}...` : user.bio}
+                    </Typography>
+                  </Box>
+                )}
+
                 <Box>
                   <Typography variant="body2" sx={{ opacity: 0.9, mb: 1 }}>
-                    Top Skills:
+                    Skills
                   </Typography>
                   <Box display="flex" flexWrap="wrap" gap={0.5}>
                     {user?.skills?.slice(0, 3).map((skill) => (
@@ -174,21 +295,6 @@ const Dashboard = () => {
                     )}
                   </Box>
                 </Box>
-
-                {user?.bio && (
-                  <Box mt={2}>
-                    <Typography variant="body2" sx={{ opacity: 0.9, mb: 1 }}>
-                      About:
-                    </Typography>
-                    <Typography variant="body2" sx={{ 
-                      opacity: 0.8,
-                      fontStyle: 'italic',
-                      lineHeight: 1.4
-                    }}>
-                      {user.bio.length > 100 ? `${user.bio.substring(0, 100)}...` : user.bio}
-                    </Typography>
-                  </Box>
-                )}
               </CardContent>
             </Card>
           </Grid>
@@ -260,6 +366,153 @@ const Dashboard = () => {
               </Grid>
             </Grid>
           </Grid>
+
+          {/* Weekly Performance Trend */}
+          <Grid item xs={12}>
+            <Card sx={{ borderRadius: 3, boxShadow: '0 8px 32px rgba(0,0,0,0.06)' }}>
+              <CardContent sx={{ p: 3 }}>
+                <Typography variant="h5" sx={{ fontWeight: 'bold', mb: 2 }}>
+                  Weekly Performance
+                </Typography>
+                <Box sx={{ height: 260 }}>
+                  <ResponsiveContainer width="100%" height="100%">
+                    <AreaChart data={trendData} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
+                      <defs>
+                        <linearGradient id="colorScore" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="0%" stopColor="#764ba2" stopOpacity={0.35} />
+                          <stop offset="100%" stopColor="#764ba2" stopOpacity={0} />
+                        </linearGradient>
+                        <linearGradient id="colorInterviews" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="0%" stopColor="#48dbfb" stopOpacity={0.35} />
+                          <stop offset="100%" stopColor="#48dbfb" stopOpacity={0} />
+                        </linearGradient>
+                      </defs>
+                      <XAxis dataKey="name" axisLine={false} tickLine={false} />
+                      <YAxis axisLine={false} tickLine={false} />
+                      <Tooltip />
+                      <Area type="monotone" dataKey="score" stroke="#764ba2" fillOpacity={1} fill="url(#colorScore)" />
+                      <Area type="monotone" dataKey="interviews" stroke="#48dbfb" fillOpacity={1} fill="url(#colorInterviews)" />
+                    </AreaChart>
+                  </ResponsiveContainer>
+                </Box>
+              </CardContent>
+            </Card>
+          </Grid>
+
+        {/* Interview Invitations */}
+        <Grid item xs={12}>
+          <Card sx={{ borderRadius: 3, boxShadow: '0 8px 32px rgba(0,0,0,0.06)' }}>
+            <CardContent sx={{ p: 3 }}>
+              <Box display="flex" alignItems="center" justifyContent="space-between" mb={1.5}>
+                <Typography variant="h5" sx={{ fontWeight: 'bold' }}>
+                  Interview Invitations
+                </Typography>
+                <Button size="small" onClick={fetchPendingInvitations}>Refresh</Button>
+              </Box>
+              {invitations.length === 0 ? (
+                <Box sx={{ textAlign: 'center', py: 3, color: 'text.secondary' }}>
+                  No pending invitations
+                </Box>
+              ) : (
+                <List>
+                  {invitations.map((inv) => (
+                    <ListItem key={inv.id} divider>
+                      <ListItemAvatar>
+                        <Avatar src={inv.interviewer?.profilePicture ? `${API_BASE_URL}${inv.interviewer.profilePicture}` : ''}>
+                          {inv.interviewer?.name?.charAt(0)?.toUpperCase()}
+                        </Avatar>
+                      </ListItemAvatar>
+                      <ListItemText
+                        primary={inv.interviewer?.name || 'Interviewer'}
+                        secondary={
+                          <Stack direction="row" spacing={1} alignItems="center">
+                            <Chip size="small" label={inv.domain || 'General'} />
+                            {inv.selectedQuestions?.length ? (
+                              <Chip size="small" variant="outlined" label={`${inv.selectedQuestions.length} questions`} />
+                            ) : null}
+                          </Stack>
+                        }
+                      />
+                      <ListItemSecondaryAction>
+                        <Stack direction="row" spacing={1}>
+                          <Button size="small" variant="outlined" color="error" onClick={() => handleRespondInvitation(inv.id, 'reject')}>
+                            Decline
+                          </Button>
+                          <Button size="small" variant="contained" onClick={() => handleRespondInvitation(inv.id, 'accept')}>
+                            Accept
+                          </Button>
+                        </Stack>
+                      </ListItemSecondaryAction>
+                    </ListItem>
+                  ))}
+                </List>
+              )}
+            </CardContent>
+          </Card>
+        </Grid>
+
+        {/* Sent Invitations */}
+        <Grid item xs={12} id="sent-invitations-section">
+          <Card sx={{ borderRadius: 3, boxShadow: '0 8px 32px rgba(0,0,0,0.06)' }}>
+            <CardContent sx={{ p: 3 }}>
+              <Box display="flex" alignItems="center" justifyContent="space-between" mb={1.5}>
+                <Typography variant="h5" sx={{ fontWeight: 'bold' }}>
+                  Sent Invitations
+                </Typography>
+                <Button size="small" onClick={fetchSentInvitations}>Refresh</Button>
+              </Box>
+              {sentInvitations.length === 0 ? (
+                <Box sx={{ textAlign: 'center', py: 3, color: 'text.secondary' }}>
+                  No sent invitations yet
+                </Box>
+              ) : (
+                <List>
+                  {sentInvitations.map((inv) => (
+                    <ListItem key={inv.id || inv._id} divider>
+                      <ListItemAvatar>
+                        <Avatar src={inv.recipient?.profilePicture ? `${API_BASE_URL}${inv.recipient.profilePicture}` : ''}>
+                          {inv.recipient?.name?.charAt(0)?.toUpperCase()}
+                        </Avatar>
+                      </ListItemAvatar>
+                      <ListItemText
+                        primary={inv.recipient?.name || 'Recipient'}
+                        secondary={
+                          <Stack direction="row" spacing={1} alignItems="center">
+                            <Chip size="small" label={inv.domain || inv.recipient?.domain || 'General'} />
+                            {inv.selectedQuestions?.length ? (
+                              <Chip size="small" variant="outlined" label={`${inv.selectedQuestions.length} questions`} />
+                            ) : null}
+                            {inv.status && (
+                              <Chip size="small" color={inv.status === 'accepted' ? 'success' : inv.status === 'rejected' ? 'error' : 'default'} label={inv.status} />
+                            )}
+                          </Stack>
+                        }
+                      />
+                      <ListItemSecondaryAction>
+                        <Stack direction="row" spacing={1}>
+                          {/* Optional: Cancel sent invitation if pending */}
+                          {(!inv.status || inv.status === 'pending') && (
+                            <Button size="small" variant="outlined" color="error" onClick={async () => {
+                              try {
+                                await axios.post(`${API_BASE_URL}/api/interviews/cancel-invitation/${inv.id || inv._id}`);
+                              } catch (e) {
+                                // ignore
+                              } finally {
+                                setSentInvitations((prev) => prev.filter((i) => (i.id || i._id) !== (inv.id || inv._id)));
+                              }
+                            }}>
+                              Cancel
+                            </Button>
+                          )}
+                        </Stack>
+                      </ListItemSecondaryAction>
+                    </ListItem>
+                  ))}
+                </List>
+              )}
+            </CardContent>
+          </Card>
+        </Grid>
 
           {/* Enhanced Quick Actions */}
           <Grid item xs={12}>

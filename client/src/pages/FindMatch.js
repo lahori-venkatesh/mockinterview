@@ -162,10 +162,18 @@ const FindMatch = () => {
       toast.success(`Interview invitation sent to ${selectedMatch.name}!`);
       toast.info('Waiting for their response...');
       
+      // Persist latest sent invitation for dashboard UX
+      try {
+        window.sessionStorage.setItem('recentSentInvitation', JSON.stringify(response.data.invitation));
+      } catch (_) {}
+
       // Close dialog and reset selection
       setQuestionDialogOpen(false);
       setSelectedMatch(null);
       setSelectedQuestions([]);
+      
+      // Navigate to dashboard focusing Sent Invitations and pass invitation via state
+      navigate('/dashboard?focus=sent-invitations', { state: { recentlySentInvitation: response.data.invitation } });
       
     } catch (error) {
       console.error('Error sending invitation:', error);

@@ -51,15 +51,19 @@ const Navbar = () => {
 
   return (
     <AppBar 
-      position="static" 
+      position="sticky" 
       elevation={0}
       sx={{ 
         background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-        borderBottom: '1px solid rgba(255,255,255,0.1)'
+        borderBottom: '2px solid rgba(255,255,255,0.1)',
+        borderRadius: 0,
+        top: 0,
+        zIndex: (theme) => theme.zIndex.appBar
       }}
     >
-      <Toolbar sx={{ minHeight: '70px !important' }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', flexGrow: 1 }}>
+      <Toolbar sx={{ minHeight: '70px !important', display: 'flex', alignItems: 'center' }}>
+        {/* Left: Logo */}
+        <Box sx={{ display: 'flex', alignItems: 'center', width: { xs: 'auto', md: '33%' } }}>
           <Typography 
             variant="h5" 
             component="div" 
@@ -68,14 +72,16 @@ const Navbar = () => {
               background: 'linear-gradient(45deg, #FE6B8B 30%, #FF8E53 90%)',
               WebkitBackgroundClip: 'text',
               WebkitTextFillColor: 'transparent',
-              mr: 4
+              mr: 2
             }}
           >
             🎯 InterviewAce
           </Typography>
-          
-          <Box sx={{ display: 'flex', gap: 1 }}>
-            <Button 
+        </Box>
+
+        {/* Center: Primary Nav */}
+        <Box sx={{ flexGrow: 1, display: 'flex', justifyContent: 'center', gap: 1 }}>
+          <Button 
               color="inherit" 
               startIcon={<DashboardIcon />}
               onClick={() => navigate('/dashboard')}
@@ -89,7 +95,7 @@ const Navbar = () => {
             >
               Dashboard
             </Button>
-            <Button 
+          <Button 
               color="inherit" 
               startIcon={<SearchIcon />}
               onClick={() => navigate('/find-match')}
@@ -103,7 +109,7 @@ const Navbar = () => {
             >
               Find Match
             </Button>
-            <Button 
+          <Button 
               color="inherit" 
               startIcon={<HistoryIcon />}
               onClick={() => navigate('/history')}
@@ -117,26 +123,26 @@ const Navbar = () => {
             >
               History
             </Button>
-            {user?.role === 'admin' && (
-              <Button 
-                color="inherit" 
-                startIcon={<AdminIcon />}
-                onClick={() => navigate('/admin')}
-                variant={isActive('/admin') ? 'contained' : 'text'}
-                sx={{ 
-                  borderRadius: 2,
-                  textTransform: 'none',
-                  bgcolor: isActive('/admin') ? 'rgba(255,255,255,0.2)' : 'transparent',
-                  '&:hover': { bgcolor: 'rgba(255,255,255,0.1)' }
-                }}
-              >
-                Admin
-              </Button>
-            )}
-          </Box>
+          {user?.role === 'admin' && (
+            <Button 
+              color="inherit" 
+              startIcon={<AdminIcon />}
+              onClick={() => navigate('/admin')}
+              variant={isActive('/admin') ? 'contained' : 'text'}
+              sx={{ 
+                borderRadius: 2,
+                textTransform: 'none',
+                bgcolor: isActive('/admin') ? 'rgba(255,255,255,0.2)' : 'transparent',
+                '&:hover': { bgcolor: 'rgba(255,255,255,0.1)' }
+              }}
+            >
+              Admin
+            </Button>
+          )}
         </Box>
-        
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+
+        {/* Right: User Actions */}
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, width: { xs: 'auto', md: '33%' }, justifyContent: 'flex-end' }}>
           {user?.isPremium ? (
             <Chip 
               label="Premium" 
