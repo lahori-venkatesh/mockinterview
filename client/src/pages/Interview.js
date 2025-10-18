@@ -78,7 +78,8 @@ const Interview = () => {
   const [stream, setStream] = useState(null);
   const [peer, setPeer] = useState(null);
   const [partnerStream, setPartnerStream] = useState(null);
-  const webcamRef = useRef();
+  const [connectionStatus, setConnectionStatus] = useState('disconnected'); // disconnected, connecting, connected
+  const myVideoRef = useRef();
   const partnerVideoRef = useRef();
 
   useEffect(() => {
@@ -215,12 +216,13 @@ const Interview = () => {
   const setupVideoCall = async () => {
     try {
       console.log('🎥 Setting up video call...');
+      setConnectionStatus('connecting');
       
       // Request permissions with better error handling
       const userStream = await navigator.mediaDevices.getUserMedia({
         video: {
-          width: { ideal: 640 },
-          height: { ideal: 480 },
+          width: { ideal: 1280, max: 1280 },
+          height: { ideal: 720, max: 720 },
           facingMode: 'user'
         },
         audio: {
@@ -235,17 +237,11 @@ const Interview = () => {
       setMediaPermissionGranted(true);
       setPermissionError('');
       
-      // Set video source immediately - no setTimeout needed
-      if (webcamRef.current) {
-        webcamRef.current.srcObject = userStream;
-        webcamRef.current.play().catch(console.error);
-        console.log('✅ Set user video stream to webcamRef');
-      }
-      
       toast.success('Camera and microphone connected successfully');
       
     } catch (error) {
       console.error('❌ Error accessing media devices:', error);
+      setConnectionStatus('disconnected');
       
       let errorMessage = 'Error accessing camera/microphone. ';
       
@@ -264,6 +260,22 @@ const Interview = () => {
     }
   };
 
+  // Set video streams to video elements when they change
+  useEffect(() => {
+    if (stream && myVideoRef.current) {
+      myVideoRef.current.srcObject = stream;
+      console.log('✅ Set my video stream');
+    }
+  }, [stream]);
+
+  useEffect(() => {
+    if (partnerStream && partnerVideoRef.current) {
+      partnerVideoRef.current.srcObject = partnerStream;
+      console.log('✅ Set partner video stream');
+      setConnectionStatus('connected');
+    }
+  }, [partnerStream]);
+
   const handleUserJoined = (data) => {
     console.log('👥 User joined interview:', data);
     toast.info(`Another user joined the interview`);
@@ -280,6 +292,7 @@ const Interview = () => {
   const initiatePeerConnection = () => {
     if (!stream) {
       console.log('❌ Stream not available for peer connection');
+      toast.error('Please enable your camera and microphone first');
       return;
     }
     
@@ -290,6 +303,7 @@ const Interview = () => {
     }
 
     console.log('🚀 Initiating peer connection as initiator...');
+    setConnectionStatus('connecting');
     
     const newPeer = new Peer({
       initiator: true,
@@ -299,59 +313,41 @@ const Interview = () => {
         iceServers: [
           { urls: 'stun:stun.l.google.com:19302' },
           { urls: 'stun:stun1.l.google.com:19302' },
-          { urls: 'stun:stun2.l.google.com:19302' }
+          { urls: 'stun:stun2.l.google.com:19302' },
+          { urls: 'stun:stun3.l.google.com:19302' },
+          { urls: 'stun:stun4.l.google.com:19302' }
         ]
       }
     });
 
     newPeer.on('signal', (data) => {
       console.log('📤 Sending offer via socket...');
-      socket.emit('offer', { roomId, offer: data });
+      if (socket) {
+        socket.emit('offer', { roomId, offer: data });
+      }
     });
 
-    newPeer.on('stream', (partnerStream) => {
-      console.log('📥 Received partner stream!', partnerStream);
-      setPartnerStream(partnerStream);
-      
-      // Set partner video immediately
-      if (partnerVideoRef.current) {
-        partnerVideoRef.current.srcObject = partnerStream;
-        partnerVideoRef.current.play()
-          .then(() => {
-            console.log('✅ Partner video playing successfully');
-            toast.success('Connected to partner video!');
-          })
-          .catch(err => {
-            console.error('❌ Error playing partner video:', err);
-          });
-      } else {
-        console.error('❌ partnerVideoRef not available');
-      }
+    newPeer.on('stream', (receivedStream) => {
+      console.log('📥 Received partner stream!', receivedStream);
+      setPartnerStream(receivedStream);
+      toast.success('Connected to partner video!');
     });
 
     newPeer.on('connect', () => {
       console.log('🔗 Peer connection established');
+      setConnectionStatus('connected');
     });
 
     newPeer.on('error', (err) => {
       console.error('❌ Peer connection error:', err);
-      toast.error('Video connection failed. Retrying...');
-      
-      // Retry connection after 3 seconds
-      setTimeout(() => {
-        setPeer(null);
-        if (stream) {
-          initiatePeerConnection();
-        }
-      }, 3000);
+      setConnectionStatus('disconnected');
+      toast.error('Video connection failed. Click "Connect Video" to retry.');
     });
 
     newPeer.on('close', () => {
       console.log('🔌 Peer connection closed');
       setPartnerStream(null);
-      if (partnerVideoRef.current) {
-        partnerVideoRef.current.srcObject = null;
-      }
+      setConnectionStatus('disconnected');
     });
 
     setPeer(newPeer);
@@ -370,6 +366,7 @@ const Interview = () => {
     }
 
     console.log('📥 Received video offer, creating answer peer...');
+    setConnectionStatus('connecting');
 
     const newPeer = new Peer({
       initiator: false,
@@ -379,51 +376,41 @@ const Interview = () => {
         iceServers: [
           { urls: 'stun:stun.l.google.com:19302' },
           { urls: 'stun:stun1.l.google.com:19302' },
-          { urls: 'stun:stun2.l.google.com:19302' }
+          { urls: 'stun:stun2.l.google.com:19302' },
+          { urls: 'stun:stun3.l.google.com:19302' },
+          { urls: 'stun:stun4.l.google.com:19302' }
         ]
       }
     });
 
     newPeer.on('signal', (data) => {
       console.log('📤 Sending answer via socket...');
-      socket.emit('answer', { roomId, answer: data });
+      if (socket) {
+        socket.emit('answer', { roomId, answer: data });
+      }
     });
 
-    newPeer.on('stream', (partnerStream) => {
-      console.log('📥 Received partner stream (answerer)!', partnerStream);
-      setPartnerStream(partnerStream);
-      
-      // Set partner video immediately
-      if (partnerVideoRef.current) {
-        partnerVideoRef.current.srcObject = partnerStream;
-        partnerVideoRef.current.play()
-          .then(() => {
-            console.log('✅ Partner video playing successfully (answerer)');
-            toast.success('Connected to partner video!');
-          })
-          .catch(err => {
-            console.error('❌ Error playing partner video (answerer):', err);
-          });
-      } else {
-        console.error('❌ partnerVideoRef not available (answerer)');
-      }
+    newPeer.on('stream', (receivedStream) => {
+      console.log('📥 Received partner stream (answerer)!', receivedStream);
+      setPartnerStream(receivedStream);
+      toast.success('Connected to partner video!');
     });
 
     newPeer.on('connect', () => {
       console.log('🔗 Peer connection established (answerer)');
+      setConnectionStatus('connected');
     });
 
     newPeer.on('error', (err) => {
       console.error('❌ Peer connection error (answerer):', err);
+      setConnectionStatus('disconnected');
       toast.error('Video connection failed');
     });
 
     newPeer.on('close', () => {
       console.log('🔌 Peer connection closed (answerer)');
       setPartnerStream(null);
-      if (partnerVideoRef.current) {
-        partnerVideoRef.current.srcObject = null;
-      }
+      setConnectionStatus('disconnected');
     });
 
     try {
@@ -432,6 +419,7 @@ const Interview = () => {
       console.log('✅ Successfully signaled offer');
     } catch (error) {
       console.error('❌ Error signaling offer:', error);
+      setConnectionStatus('disconnected');
       toast.error('Failed to process video offer');
     }
   };
@@ -756,24 +744,34 @@ const Interview = () => {
                     <ReportIcon />
                   </IconButton>
                 </Tooltip>
-                <Button
-                  variant="outlined"
-                  color="primary"
-                  onClick={() => {
-                    console.log('🔄 Manual peer connection attempt');
-                    if (stream && !peer) {
-                      initiatePeerConnection();
-                    } else if (!stream) {
-                      setupVideoCall();
-                    } else {
-                      console.log('Peer already exists or stream not available');
-                    }
-                  }}
-                  sx={{ mr: 1 }}
-                  size="small"
-                >
-                  Connect Video
-                </Button>
+                {connectionStatus !== 'connected' && (
+                  <Button
+                    variant="contained"
+                    color={connectionStatus === 'connecting' ? 'warning' : 'primary'}
+                    onClick={() => {
+                      console.log('🔄 Manual peer connection attempt');
+                      if (stream && socket) {
+                        initiatePeerConnection();
+                      } else if (!stream) {
+                        setupVideoCall();
+                      } else {
+                        toast.error('Socket not connected. Please refresh the page.');
+                      }
+                    }}
+                    sx={{ mr: 1 }}
+                    size="small"
+                    disabled={connectionStatus === 'connecting'}
+                  >
+                    {connectionStatus === 'connecting' ? 'Connecting...' : 'Connect Video'}
+                  </Button>
+                )}
+                {connectionStatus === 'connected' && (
+                  <Chip 
+                    label="Video Connected" 
+                    color="success" 
+                    sx={{ mr: 1 }}
+                  />
+                )}
                 <Button
                   variant="outlined"
                   color="secondary"
@@ -797,6 +795,31 @@ const Interview = () => {
         <Grid item xs={12} md={8}>
           <Card sx={{ height: '500px', position: 'relative' }}>
             <CardContent sx={{ p: 0, height: '100%' }}>
+              {/* Connection Status Bar */}
+              <Box sx={{ 
+                position: 'absolute', 
+                top: 8, 
+                left: 8, 
+                right: 8, 
+                zIndex: 10,
+                display: 'flex',
+                justifyContent: 'center'
+              }}>
+                <Chip 
+                  label={
+                    connectionStatus === 'connected' ? '🟢 Video Connected' :
+                    connectionStatus === 'connecting' ? '🟡 Connecting...' :
+                    '🔴 Not Connected'
+                  }
+                  color={
+                    connectionStatus === 'connected' ? 'success' :
+                    connectionStatus === 'connecting' ? 'warning' :
+                    'error'
+                  }
+                  sx={{ fontWeight: 'bold' }}
+                />
+              </Box>
+
               <Grid container sx={{ height: '100%' }}>
                 <Grid item xs={6} sx={{ position: 'relative' }}>
                   <Box sx={{ 
@@ -806,18 +829,19 @@ const Interview = () => {
                     borderRadius: '8px 0 0 8px',
                     overflow: 'hidden'
                   }}>
-                    <video
-                      ref={webcamRef}
-                      autoPlay
-                      muted
-                      style={{ 
-                        width: '100%', 
-                        height: '100%', 
-                        objectFit: 'cover',
-                        display: videoEnabled ? 'block' : 'none'
-                      }}
-                    />
-                    {!videoEnabled && (
+                    {stream && videoEnabled ? (
+                      <video
+                        ref={myVideoRef}
+                        autoPlay
+                        muted
+                        playsInline
+                        style={{ 
+                          width: '100%', 
+                          height: '100%', 
+                          objectFit: 'cover'
+                        }}
+                      />
+                    ) : (
                       <Box sx={{
                         position: 'absolute',
                         top: 0,
@@ -825,13 +849,18 @@ const Interview = () => {
                         width: '100%',
                         height: '100%',
                         display: 'flex',
+                        flexDirection: 'column',
                         alignItems: 'center',
                         justifyContent: 'center',
-                        bgcolor: '#1a1a1a'
+                        bgcolor: '#1a1a1a',
+                        color: 'white'
                       }}>
-                        <Avatar sx={{ width: 80, height: 80, bgcolor: 'primary.main' }}>
+                        <Avatar sx={{ width: 80, height: 80, bgcolor: 'primary.main', mb: 2 }}>
                           {user?.name?.charAt(0).toUpperCase()}
                         </Avatar>
+                        <Typography variant="body2">
+                          {!stream ? 'Camera not available' : 'Video disabled'}
+                        </Typography>
                       </Box>
                     )}
                     <Box sx={{
@@ -910,8 +939,11 @@ const Interview = () => {
                         <Avatar sx={{ width: 80, height: 80, bgcolor: 'secondary.main', mb: 2 }}>
                           {partner?.userId.name?.charAt(0).toUpperCase() || 'P'}
                         </Avatar>
-                        <Typography variant="body2">
-                          Waiting for {partner?.userId.name || 'partner'} to connect...
+                        <Typography variant="body2" sx={{ mb: 1 }}>
+                          {partner?.userId.name || 'Partner'}
+                        </Typography>
+                        <Typography variant="caption" color="grey.400">
+                          {connectionStatus === 'connecting' ? 'Connecting...' : 'Not connected'}
                         </Typography>
                       </Box>
                     )}
