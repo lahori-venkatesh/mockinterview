@@ -10,92 +10,200 @@ const router = express.Router();
 router.get('/matches', auth, async (req, res) => {
   try {
     const currentUser = await User.findById(req.userId);
-    const { genderPreference } = req.query;
+    if (!currentUser) {
+      return res.status(404).json({ message: 'User not found' });
+    }
 
-    console.log(`Finding matches for user: ${currentUser.name} (${currentUser.domain})`);
+    const { genderPreference = 'same' } = req.query;
 
-    // Base query - exclude self and match domain
-    let matchQuery = {
+    console.log(`Finding matches for user: ${currentUser.name} (${currentUser.domain}, ${currentUser.gender})`);
+    console.log(`Gender preference: ${genderPreference}, Premium: ${currentUser.isPremium}`);
+
+    // Base query - exclude self and users with incomplete profiles
+    let baseQuery = {
       _id: { $ne: req.userId },
-      domain: currentUser.domain
+      domain: { $ne: 'Not specified' },
+      experience: { $ne: 'Not specified' },
+      gender: { $ne: 'Not specified' },
+      role: { $ne: 'admin' } // Exclude admin users from matching
     };
 
-    // Add online status preference (but don't make it mandatory)
-    // Users active in last 30 minutes are considered "available"
-    const recentlyActive = new Date(Date.now() - 30 * 60 * 1000);
+    // Users active in last 2 hours are considered "recently active"
+    const recentlyActive = new Date(Date.now() - 2 * 60 * 60 * 1000);
 
-    // Premium matching logic
-    if (currentUser.isPremium) {
-      console.log('Premium user matching with preference:', genderPreference);
-      
-      if (genderPreference === 'same') {
-        matchQuery.gender = currentUser.gender;
-      } else if (genderPreference === 'opposite') {
-        matchQuery.gender = { $ne: currentUser.gender };
+    let matches = [];
+
+    // Strategy 1: STRICT same domain matches with gender preference
+    if (currentUser.domain !== 'Not specified') {
+      let sameDomainQuery = { 
+        ...baseQuery,
+        domain: currentUser.domain  // STRICT same domain requirement
+      };
+
+      // Apply gender preference logic
+      if (currentUser.isPremium) {
+        console.log('Premium user matching with preference:', genderPreference);
+        
+        if (genderPreference === 'same' && currentUser.gender !== 'Not specified') {
+          sameDomainQuery.gender = currentUser.gender;
+        } else if (genderPreference === 'opposite' && currentUser.gender !== 'Not specified') {
+          sameDomainQuery.gender = { $ne: currentUser.gender, $ne: 'Not specified' };
+        }
+        // 'any' preference doesn't add gender filter
+      } else {
+        // Free users - same gender only (unless gender is not specified)
+        console.log('Free user matching - same gender preference');
+        if (currentUser.gender !== 'Not specified') {
+          sameDomainQuery.gender = currentUser.gender;
+        }
       }
-      // For premium users, prefer recently active users but don't exclude others
-    } else {
-      // Free users - more flexible matching
-      console.log('Free user matching');
-      
-      // Don't enforce strict gender matching for better user experience
-      if (genderPreference === 'same' && currentUser.gender !== 'Not specified') {
-        matchQuery.gender = currentUser.gender;
-      }
+
+      console.log('Same domain match query:', sameDomainQuery);
+
+      // Find same domain matches first
+      matches = await User.find(sameDomainQuery)
+        .select('name skills domain experience rating totalInterviews profilePicture isOnline lastActive bio gender')
+        .sort({ 
+          isOnline: -1,           // Online users first
+          lastActive: -1,         // Recently active next
+          rating: -1,             // Higher rated users
+          totalInterviews: -1     // More experienced users
+        })
+        .limit(12);
+
+      console.log(`Found ${matches.length} same domain matches`);
     }
 
-    console.log('Match query:', matchQuery);
-
-    // First try to find recently active users
-    let matches = await User.find({
-      ...matchQuery,
-      $or: [
-        { isOnline: true },
-        { lastActive: { $gte: recentlyActive } }
-      ]
-    })
-      .select('name skills domain experience rating totalInterviews profilePicture isOnline lastActive bio')
-      .limit(10)
-      .sort({ isOnline: -1, lastActive: -1, rating: -1 });
-
-    // If no recently active matches, find any users with same domain
-    if (matches.length === 0) {
-      console.log('No recently active matches, searching all users with same domain');
-      matches = await User.find(matchQuery)
-        .select('name skills domain experience rating totalInterviews profilePicture isOnline lastActive bio')
-        .limit(10)
-        .sort({ rating: -1, totalInterviews: -1 });
-    }
-
-    // If still no matches, try broader search (any domain)
-    if (matches.length === 0) {
-      console.log('No domain matches, searching all users');
-      const broadQuery = { _id: { $ne: req.userId } };
+    // Strategy 2: If no same domain matches, try relaxed gender matching within same domain
+    if (matches.length === 0 && currentUser.domain !== 'Not specified') {
+      console.log('No strict matches found, trying relaxed gender matching within same domain');
       
+      let relaxedSameDomainQuery = { 
+        ...baseQuery,
+        domain: currentUser.domain  // Still keep same domain
+      };
+      
+      // Only for premium users, try opposite gender if same gender didn't work
       if (currentUser.isPremium && genderPreference === 'same') {
-        broadQuery.gender = currentUser.gender;
+        // Don't add gender filter - allow any gender within same domain
       }
-      
-      matches = await User.find(broadQuery)
-        .select('name skills domain experience rating totalInterviews profilePicture isOnline lastActive bio')
-        .limit(5)
-        .sort({ rating: -1, totalInterviews: -1 });
+
+      matches = await User.find(relaxedSameDomainQuery)
+        .select('name skills domain experience rating totalInterviews profilePicture isOnline lastActive bio gender')
+        .sort({ 
+          isOnline: -1,
+          lastActive: -1,
+          rating: -1,
+          totalInterviews: -1
+        })
+        .limit(10);
+
+      console.log(`Found ${matches.length} relaxed same domain matches`);
     }
 
-    console.log(`Found ${matches.length} matches`);
+    // Strategy 3: Only if no same domain matches exist, expand to other domains
+    if (matches.length < 3) {
+      console.log('Very few same domain matches, expanding to other domains');
+      
+      let expandedQuery = { ...baseQuery };
+      // Remove domain restriction but keep gender preference
+      
+      if (currentUser.isPremium) {
+        if (genderPreference === 'same' && currentUser.gender !== 'Not specified') {
+          expandedQuery.gender = currentUser.gender;
+        } else if (genderPreference === 'opposite' && currentUser.gender !== 'Not specified') {
+          expandedQuery.gender = { $ne: currentUser.gender, $ne: 'Not specified' };
+        }
+      } else {
+        if (currentUser.gender !== 'Not specified') {
+          expandedQuery.gender = currentUser.gender;
+        }
+      }
 
-    // Ensure rating and totalInterviews are never null
+      const additionalMatches = await User.find(expandedQuery)
+        .select('name skills domain experience rating totalInterviews profilePicture isOnline lastActive bio gender')
+        .sort({ 
+          isOnline: -1,
+          lastActive: -1,
+          rating: -1,
+          totalInterviews: -1
+        })
+        .limit(8);
+
+      // Merge and deduplicate
+      const existingIds = matches.map(m => m._id.toString());
+      const newMatches = additionalMatches.filter(m => !existingIds.includes(m._id.toString()));
+      matches = [...matches, ...newMatches];
+      
+      console.log(`Added ${newMatches.length} matches from other domains`);
+    }
+
+    // Limit final results and sanitize data
+    matches = matches.slice(0, 12);
+
     const sanitizedMatches = matches.map(match => ({
       ...match.toObject(),
       rating: match.rating || 0,
-      totalInterviews: match.totalInterviews || 0
+      totalInterviews: match.totalInterviews || 0,
+      // Add match score for better sorting
+      matchScore: calculateMatchScore(currentUser, match)
     }));
+
+    // Sort by match score
+    sanitizedMatches.sort((a, b) => b.matchScore - a.matchScore);
+
+    console.log(`Returning ${sanitizedMatches.length} final matches`);
 
     res.json(sanitizedMatches);
   } catch (error) {
+    console.error('Matching error:', error);
     res.status(500).json({ message: 'Server error', error: error.message });
   }
 });
+
+// Helper function to calculate match compatibility score
+function calculateMatchScore(currentUser, match) {
+  let score = 0;
+  
+  // HEAVILY favor same domain matches
+  if (currentUser.domain === match.domain && currentUser.domain !== 'Not specified') {
+    score += 100; // Much higher bonus for same domain
+  } else {
+    score -= 20; // Penalty for different domain
+  }
+  
+  // Gender preference bonus
+  if (currentUser.gender === match.gender && currentUser.gender !== 'Not specified') {
+    score += 25;
+  }
+  
+  // Experience level compatibility
+  const expLevels = ['Fresher', '0-1 years', '1-3 years', '3-5 years', '5+ years'];
+  const currentExp = expLevels.indexOf(currentUser.experience);
+  const matchExp = expLevels.indexOf(match.experience);
+  
+  if (currentExp !== -1 && matchExp !== -1) {
+    const expDiff = Math.abs(currentExp - matchExp);
+    score += Math.max(0, 25 - (expDiff * 5)); // Closer experience levels get higher score
+  }
+  
+  // Online status bonus (very important for interview matching)
+  if (match.isOnline) {
+    score += 40;
+  } else if (match.lastActive && new Date(match.lastActive) > new Date(Date.now() - 2 * 60 * 60 * 1000)) {
+    score += 20; // Active in last 2 hours
+  } else if (match.lastActive && new Date(match.lastActive) > new Date(Date.now() - 24 * 60 * 60 * 1000)) {
+    score += 10; // Active in last 24 hours
+  }
+  
+  // Rating bonus
+  score += (match.rating || 0) * 8;
+  
+  // Interview experience bonus
+  score += Math.min((match.totalInterviews || 0) * 3, 30);
+  
+  return score;
+}
 
 // Update user profile
 router.put('/profile', auth, async (req, res) => {
@@ -305,6 +413,62 @@ router.get('/profile-test', auth, async (req, res) => {
     });
   } catch (error) {
     res.status(500).json({ message: 'Test failed', error: error.message });
+  }
+});
+
+// Debug endpoint for matching issues
+router.get('/debug-matching', auth, async (req, res) => {
+  try {
+    const currentUser = await User.findById(req.userId);
+    
+    // Get all users for comparison
+    const allUsers = await User.find({ _id: { $ne: req.userId } })
+      .select('name email domain experience gender isOnline lastActive role')
+      .sort({ createdAt: -1 });
+    
+    // Count by categories
+    const stats = {
+      total: allUsers.length,
+      byDomain: {},
+      byGender: {},
+      byExperience: {},
+      online: allUsers.filter(u => u.isOnline).length,
+      admins: allUsers.filter(u => u.role === 'admin').length,
+      complete: allUsers.filter(u => 
+        u.domain !== 'Not specified' && 
+        u.experience !== 'Not specified' && 
+        u.gender !== 'Not specified'
+      ).length
+    };
+    
+    // Count by domain
+    allUsers.forEach(user => {
+      stats.byDomain[user.domain] = (stats.byDomain[user.domain] || 0) + 1;
+      stats.byGender[user.gender] = (stats.byGender[user.gender] || 0) + 1;
+      stats.byExperience[user.experience] = (stats.byExperience[user.experience] || 0) + 1;
+    });
+    
+    res.json({
+      currentUser: {
+        name: currentUser.name,
+        domain: currentUser.domain,
+        experience: currentUser.experience,
+        gender: currentUser.gender,
+        isPremium: currentUser.isPremium
+      },
+      availableUsers: allUsers.map(u => ({
+        name: u.name,
+        domain: u.domain,
+        experience: u.experience,
+        gender: u.gender,
+        isOnline: u.isOnline,
+        role: u.role
+      })),
+      stats,
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    res.status(500).json({ message: 'Debug failed', error: error.message });
   }
 });
 

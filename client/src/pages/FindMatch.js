@@ -58,8 +58,8 @@ const FindMatch = () => {
     updateOnlineStatus(true);
     
     // Connect to socket for real-time notifications
-    if (socket && user) {
-      socket.emit('user-online', user._id);
+    if (socket && user && user._id) {
+      socket.emit('user-online', user);
       
       // Listen for invitation responses
       socket.on('invitation-accepted', (data) => {
@@ -86,12 +86,57 @@ const FindMatch = () => {
   const fetchMatches = async () => {
     setLoading(true);
     try {
-      const response = await axios.get(`${API_BASE_URL}/api/users/matches?genderPreference=${genderPreference}`);
+      console.log('Fetching matches with preference:', genderPreference);
+      console.log('API URL:', `${API_BASE_URL}/api/users/matches?genderPreference=${genderPreference}`);
+      
+      const token = localStorage.getItem('token');
+      if (!token) {
+        toast.error('Please log in to find matches');
+        navigate('/');
+        return;
+      }
+
+      const response = await axios.get(
+        `${API_BASE_URL}/api/users/matches?genderPreference=${genderPreference}`,
+        {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        }
+      );
+      
+      console.log('Matches received:', response.data);
       setMatches(response.data);
+      
+      if (response.data.length === 0) {
+        toast.info('No matches found at the moment. Try again later or adjust your preferences!');
+      }
     } catch (error) {
       console.error('Error fetching matches:', error);
-      const errorMessage = error.response?.data?.message || 'Error fetching matches';
+      
+      if (error.response?.status === 401) {
+        toast.error('Session expired. Please log in again.');
+        localStorage.removeItem('token');
+        navigate('/');
+        return;
+      }
+      
+      if (error.response?.status === 404) {
+        toast.error('User profile not found. Please complete your profile.');
+        navigate('/profile');
+        return;
+      }
+      
+      const errorMessage = error.response?.data?.message || 'Error fetching matches. Please try again.';
       toast.error(errorMessage);
+      
+      // Log additional debug info
+      console.log('Error details:', {
+        status: error.response?.status,
+        data: error.response?.data,
+        config: error.config
+      });
     } finally {
       setLoading(false);
     }
@@ -100,25 +145,69 @@ const FindMatch = () => {
   const fetchQuestions = async () => {
     try {
       console.log('Fetching questions for domain:', user.domain);
-      const response = await axios.get(`${API_BASE_URL}/api/questions/${user.domain}/random?count=20`);
+      
+      const token = localStorage.getItem('token');
+      if (!token) {
+        toast.error('Please log in to fetch questions');
+        return;
+      }
+
+      const response = await axios.get(
+        `${API_BASE_URL}/api/questions/${encodeURIComponent(user.domain)}/random?count=20`,
+        {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        }
+      );
+      
       console.log('Questions received:', response.data);
       setQuestions(response.data);
       
       if (response.data.length === 0) {
-        toast.warning('No questions available for your domain. Please contact admin.');
+        toast.warning(`No questions available for ${user.domain} domain. Trying to fetch from other domains...`);
+        
+        // Try to fetch questions from any domain as fallback
+        try {
+          const fallbackResponse = await axios.get(
+            `${API_BASE_URL}/api/questions/debug/all`,
+            {
+              headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+              }
+            }
+          );
+          
+          console.log('Debug info:', fallbackResponse.data);
+          
+          if (fallbackResponse.data.sampleQuestions && fallbackResponse.data.sampleQuestions.length > 0) {
+            setQuestions(fallbackResponse.data.sampleQuestions);
+            toast.info('Using sample questions from other domains');
+          }
+        } catch (debugError) {
+          console.error('Debug fetch failed:', debugError);
+        }
       }
     } catch (error) {
       console.error('Error fetching questions:', error);
+      
+      if (error.response?.status === 401) {
+        toast.error('Session expired. Please log in again.');
+        localStorage.removeItem('token');
+        navigate('/');
+        return;
+      }
+      
       const errorMessage = error.response?.data?.message || 'Error fetching questions';
       toast.error(errorMessage);
       
-      // Try to fetch debug info
-      try {
-        const debugResponse = await axios.get(`${API_BASE_URL}/api/questions/debug/all`);
-        console.log('Debug info:', debugResponse.data);
-      } catch (debugError) {
-        console.error('Debug fetch failed:', debugError);
-      }
+      console.log('Error details:', {
+        status: error.response?.status,
+        data: error.response?.data,
+        url: error.config?.url
+      });
     }
   };
 
@@ -238,11 +327,46 @@ const FindMatch = () => {
       <Grid container spacing={3}>
         {loading ? (
           <Grid item xs={12}>
-            <Typography>Loading matches...</Typography>
+            <Box display="flex" justifyContent="center" alignItems="center" minHeight="200px">
+              <Box textAlign="center">
+                <Typography variant="h6" gutterBottom>Finding your perfect interview partners...</Typography>
+                <Typography color="textSecondary">This may take a moment</Typography>
+              </Box>
+            </Box>
           </Grid>
         ) : matches.length === 0 ? (
           <Grid item xs={12}>
-            <Typography>No matches found. Try again later!</Typography>
+            <Box textAlign="center" py={4}>
+              <Typography variant="h6" gutterBottom>No matches found right now</Typography>
+              <Typography color="textSecondary" paragraph>
+                Don't worry! Here are some tips to find more matches:
+              </Typography>
+              <Box component="ul" textAlign="left" maxWidth="400px" mx="auto">
+                <Typography component="li" variant="body2" gutterBottom>
+                  Make sure your profile is complete
+                </Typography>
+                <Typography component="li" variant="body2" gutterBottom>
+                  Try again in a few minutes - more users come online throughout the day
+                </Typography>
+                {user?.isPremium && (
+                  <Typography component="li" variant="body2" gutterBottom>
+                    Try changing your gender preference to "Any Gender"
+                  </Typography>
+                )}
+                {!user?.isPremium && (
+                  <Typography component="li" variant="body2" gutterBottom>
+                    Consider upgrading to Premium for more matching options
+                  </Typography>
+                )}
+              </Box>
+              <Button 
+                variant="outlined" 
+                onClick={fetchMatches} 
+                sx={{ mt: 2 }}
+              >
+                Refresh Matches
+              </Button>
+            </Box>
           </Grid>
         ) : (
           matches.map((match) => (

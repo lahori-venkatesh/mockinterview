@@ -33,37 +33,53 @@ router.get('/:domain/random', auth, async (req, res) => {
     
     console.log(`Fetching random questions for domain: ${domain}, count: ${count}`);
 
-    // First check if any questions exist for this domain
-    const totalQuestions = await Question.countDocuments({ domain });
-    console.log(`Total questions for ${domain}: ${totalQuestions}`);
-    
-    if (totalQuestions === 0) {
-      // Try without domain filter to see if questions exist at all
-      const allQuestions = await Question.countDocuments({});
-      console.log(`Total questions in database: ${allQuestions}`);
+    let questions = [];
+
+    // Strategy 1: Try to get questions for the specific domain
+    const domainQuestions = await Question.find({ 
+      domain, 
+      isActive: { $ne: false } 
+    }).select('question difficulty category tags domain');
+
+    console.log(`Found ${domainQuestions.length} questions for domain ${domain}`);
+
+    if (domainQuestions.length >= parseInt(count)) {
+      // Randomly sample from domain-specific questions
+      const shuffled = domainQuestions.sort(() => 0.5 - Math.random());
+      questions = shuffled.slice(0, parseInt(count));
+    } else if (domainQuestions.length > 0) {
+      // Use all domain questions and supplement with others
+      questions = [...domainQuestions];
       
-      if (allQuestions === 0) {
-        return res.json([]);
-      }
+      const remainingCount = parseInt(count) - domainQuestions.length;
+      console.log(`Need ${remainingCount} more questions, fetching from other domains`);
       
-      // If no questions for specific domain, get from any domain
-      const questions = await Question.aggregate([
-        { $match: { isActive: { $ne: false } } }, // Get active questions or questions without isActive field
-        { $sample: { size: parseInt(count) } },
-        { $project: { question: 1, difficulty: 1, category: 1, tags: 1, domain: 1 } }
-      ]);
+      const otherQuestions = await Question.find({ 
+        domain: { $ne: domain },
+        isActive: { $ne: false } 
+      }).select('question difficulty category tags domain')
+        .limit(remainingCount);
       
-      console.log(`Found ${questions.length} questions from any domain`);
-      return res.json(questions);
+      questions = [...questions, ...otherQuestions];
+    } else {
+      // Strategy 2: No domain-specific questions, get from any domain
+      console.log(`No questions for ${domain}, fetching from any domain`);
+      
+      questions = await Question.find({ 
+        isActive: { $ne: false } 
+      }).select('question difficulty category tags domain')
+        .limit(parseInt(count));
     }
 
-    const questions = await Question.aggregate([
-      { $match: { domain, isActive: { $ne: false } } }, // Match domain and active questions
-      { $sample: { size: parseInt(count) } },
-      { $project: { question: 1, difficulty: 1, category: 1, tags: 1, domain: 1 } }
-    ]);
+    // Final fallback: if still no questions, get any questions (even inactive ones)
+    if (questions.length === 0) {
+      console.log('No active questions found, trying any questions');
+      questions = await Question.find({})
+        .select('question difficulty category tags domain')
+        .limit(parseInt(count));
+    }
 
-    console.log(`Found ${questions.length} questions for domain ${domain}`);
+    console.log(`Returning ${questions.length} questions`);
     res.json(questions);
   } catch (error) {
     console.error('Error fetching random questions:', error);

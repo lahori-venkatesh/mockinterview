@@ -4,6 +4,9 @@ const socketIo = require('socket.io');
 const cors = require('cors');
 const mongoose = require('mongoose');
 const path = require('path');
+const helmet = require('helmet');
+const compression = require('compression');
+const rateLimit = require('express-rate-limit');
 require('dotenv').config();
 
 const authRoutes = require('./routes/auth');
@@ -44,32 +47,56 @@ const io = socketIo(server, {
   }
 });
 
-// Middleware
+// Security and Performance Middleware
+app.use(helmet({
+  contentSecurityPolicy: false, // Disable CSP for now to allow WebRTC
+  crossOriginEmbedderPolicy: false
+}));
+app.use(compression());
+
+// Rate limiting
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: process.env.NODE_ENV === 'production' ? 100 : 1000, // Limit each IP to 100 requests per windowMs in production
+  message: 'Too many requests from this IP, please try again later.',
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+app.use('/api/', limiter);
+
+// CORS Configuration
 const corsOptions = {
   origin: function (origin, callback) {
-    // Allow requests with no origin (like mobile apps or curl requests)
-    if (!origin) return callback(null, true);
-    
-    // If CORS_ORIGIN is set to *, allow all origins
-    if (process.env.CORS_ORIGIN === '*') {
+    // Allow requests with no origin in development
+    if (!origin && process.env.NODE_ENV !== 'production') {
       return callback(null, true);
     }
     
-    // Otherwise, check against allowed origins
+    // Production origins
     const allowedOrigins = [
-      'http://localhost:3000', 
-      'http://127.0.0.1:3000',
       'https://mockinterview-bdve.onrender.com',
-      process.env.CORS_ORIGIN || 'https://your-frontend.vercel.app'
+      process.env.CORS_ORIGIN
     ];
+    
+    // Development origins
+    if (process.env.NODE_ENV !== 'production') {
+      allowedOrigins.push(
+        'http://localhost:3000',
+        'http://127.0.0.1:3000',
+        'http://localhost:3001'
+      );
+    }
     
     if (allowedOrigins.indexOf(origin) !== -1) {
       callback(null, true);
     } else {
+      console.log('CORS blocked origin:', origin);
       callback(new Error('Not allowed by CORS'));
     }
   },
-  credentials: true
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
 };
 
 app.use(cors(corsOptions));
@@ -99,9 +126,13 @@ io.on('connection', (socket) => {
 
   // User joins their personal room for notifications
   socket.on('user-online', (userData) => {
-    connectedUsers.set(userData._id, socket.id);
-    socket.join(userData._id); // Join personal room with userId
-    console.log(`User ${userData._id} is online with socket ${socket.id}`);
+    if (userData && userData._id) {
+      connectedUsers.set(userData._id, socket.id);
+      socket.join(userData._id); // Join personal room with userId
+      console.log(`User ${userData._id} is online with socket ${socket.id}`);
+    } else {
+      console.log('Invalid user data received for user-online event:', userData);
+    }
   });
 
   // Handle interview invitation
