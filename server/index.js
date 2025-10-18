@@ -4,10 +4,19 @@ const socketIo = require('socket.io');
 const cors = require('cors');
 const mongoose = require('mongoose');
 const path = require('path');
-const helmet = require('helmet');
-const compression = require('compression');
-const rateLimit = require('express-rate-limit');
 require('dotenv').config();
+
+// Optional production dependencies with fallbacks
+let helmet, compression, rateLimit;
+try {
+  helmet = require('helmet');
+  compression = require('compression');
+  rateLimit = require('express-rate-limit');
+  console.log('✅ Production security modules loaded');
+} catch (error) {
+  console.log('⚠️  Production security modules not available:', error.message);
+  console.log('🔄 Running in basic mode without helmet, compression, and rate limiting');
+}
 
 const authRoutes = require('./routes/auth');
 const userRoutes = require('./routes/users');
@@ -21,24 +30,34 @@ const server = http.createServer(app);
 const io = socketIo(server, {
   cors: {
     origin: function (origin, callback) {
-      // Allow requests with no origin
-      if (!origin) return callback(null, true);
+      console.log('🔌 Socket.IO CORS request from origin:', origin);
       
-      // If CORS_ORIGIN is set to *, allow all origins
-      if (process.env.CORS_ORIGIN === '*') {
+      // Allow requests with no origin
+      if (!origin) {
+        console.log('✅ Socket.IO allowing request with no origin');
         return callback(null, true);
       }
       
-      // Otherwise, check against allowed origins
+      // Define allowed origins (same as main CORS)
       const allowedOrigins = [
-        "http://localhost:3000",
-        "https://mockinterview-bdve.onrender.com",
-        process.env.CORS_ORIGIN || "https://your-frontend.vercel.app"
-      ];
+        'https://mockinterview-bdve.onrender.com',
+        process.env.CORS_ORIGIN
+      ].filter(Boolean);
       
-      if (allowedOrigins.indexOf(origin) !== -1) {
+      // Add development origins
+      if (process.env.NODE_ENV !== 'production') {
+        allowedOrigins.push(
+          'http://localhost:3000',
+          'http://127.0.0.1:3000',
+          'http://localhost:3001'
+        );
+      }
+      
+      if (allowedOrigins.includes(origin)) {
+        console.log('✅ Socket.IO origin allowed:', origin);
         callback(null, true);
       } else {
+        console.log('❌ Socket.IO CORS blocked origin:', origin);
         callback(new Error('Not allowed by CORS'));
       }
     },
@@ -47,38 +66,51 @@ const io = socketIo(server, {
   }
 });
 
-// Security and Performance Middleware
-app.use(helmet({
-  contentSecurityPolicy: false, // Disable CSP for now to allow WebRTC
-  crossOriginEmbedderPolicy: false
-}));
-app.use(compression());
+// Security and Performance Middleware (optional)
+if (helmet) {
+  app.use(helmet({
+    contentSecurityPolicy: false, // Disable CSP for now to allow WebRTC
+    crossOriginEmbedderPolicy: false
+  }));
+  console.log('🛡️  Helmet security headers enabled');
+}
 
-// Rate limiting
-const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: process.env.NODE_ENV === 'production' ? 100 : 1000, // Limit each IP to 100 requests per windowMs in production
-  message: 'Too many requests from this IP, please try again later.',
-  standardHeaders: true,
-  legacyHeaders: false,
-});
-app.use('/api/', limiter);
+if (compression) {
+  app.use(compression());
+  console.log('🗜️  Gzip compression enabled');
+}
+
+// Rate limiting (optional)
+if (rateLimit) {
+  const limiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: process.env.NODE_ENV === 'production' ? 100 : 1000, // Limit each IP to 100 requests per windowMs in production
+    message: 'Too many requests from this IP, please try again later.',
+    standardHeaders: true,
+    legacyHeaders: false,
+  });
+  app.use('/api/', limiter);
+  console.log('🚦 Rate limiting enabled');
+}
 
 // CORS Configuration
 const corsOptions = {
   origin: function (origin, callback) {
-    // Allow requests with no origin in development
-    if (!origin && process.env.NODE_ENV !== 'production') {
+    console.log('🌐 CORS request from origin:', origin);
+    
+    // Allow requests with no origin (mobile apps, Postman, etc.)
+    if (!origin) {
+      console.log('✅ Allowing request with no origin');
       return callback(null, true);
     }
     
-    // Production origins
+    // Define allowed origins
     const allowedOrigins = [
       'https://mockinterview-bdve.onrender.com',
       process.env.CORS_ORIGIN
-    ];
+    ].filter(Boolean); // Remove undefined values
     
-    // Development origins
+    // Add development origins
     if (process.env.NODE_ENV !== 'production') {
       allowedOrigins.push(
         'http://localhost:3000',
@@ -87,16 +119,21 @@ const corsOptions = {
       );
     }
     
-    if (allowedOrigins.indexOf(origin) !== -1) {
+    console.log('🔍 Allowed origins:', allowedOrigins);
+    
+    if (allowedOrigins.includes(origin)) {
+      console.log('✅ Origin allowed:', origin);
       callback(null, true);
     } else {
-      console.log('CORS blocked origin:', origin);
+      console.log('❌ CORS blocked origin:', origin);
+      console.log('💡 Add this origin to CORS_ORIGIN environment variable if needed');
       callback(new Error('Not allowed by CORS'));
     }
   },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization']
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+  optionsSuccessStatus: 200 // Some legacy browsers choke on 204
 };
 
 app.use(cors(corsOptions));
@@ -301,5 +338,8 @@ app.get('/api/debug/connected-users', (req, res) => {
 
 const PORT = process.env.PORT || 10000;
 server.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+  console.log(`🚀 Server running on port ${PORT} in ${process.env.NODE_ENV} mode`);
+  console.log(`📊 Health check: http://localhost:${PORT}/api/health`);
+  console.log(`🌐 CORS_ORIGIN: ${process.env.CORS_ORIGIN}`);
+  console.log(`🔒 NODE_ENV: ${process.env.NODE_ENV}`);
 });
