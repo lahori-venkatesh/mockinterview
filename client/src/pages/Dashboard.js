@@ -34,6 +34,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useSocket } from '../contexts/SocketContext';
 import axios from 'axios';
+import { toast } from 'react-toastify';
 import API_BASE_URL from '../config/api';
 import {
   ResponsiveContainer,
@@ -102,15 +103,41 @@ const Dashboard = () => {
 
   useEffect(() => {
     if (!socket) return;
+    
     const handleInvitation = (invitation) => {
       setInvitations((prev) => {
         const exists = prev.some((i) => i.id === invitation.id);
         return exists ? prev : [invitation, ...prev];
       });
     };
+
+    const handleInvitationAccepted = (data) => {
+      console.log('Invitation accepted on dashboard:', data);
+      toast.success(data.message || 'Interview invitation accepted!');
+      
+      // Navigate to interview room
+      if (data.roomId) {
+        navigate(`/interview/${data.roomId}`);
+      } else {
+        console.error('No roomId provided in invitation-accepted event');
+      }
+    };
+
+    const handleInvitationRejected = (data) => {
+      console.log('Invitation rejected on dashboard:', data);
+      toast.info(data.message || 'Interview invitation was declined');
+    };
+    
     socket.on('interview-invitation', handleInvitation);
-    return () => socket.off('interview-invitation', handleInvitation);
-  }, [socket]);
+    socket.on('invitation-accepted', handleInvitationAccepted);
+    socket.on('invitation-rejected', handleInvitationRejected);
+    
+    return () => {
+      socket.off('interview-invitation', handleInvitation);
+      socket.off('invitation-accepted', handleInvitationAccepted);
+      socket.off('invitation-rejected', handleInvitationRejected);
+    };
+  }, [socket, navigate]);
 
   const fetchStats = async () => {
     try {

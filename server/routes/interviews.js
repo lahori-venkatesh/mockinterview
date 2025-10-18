@@ -141,12 +141,22 @@ router.post('/respond-invitation/:invitationId', auth, async (req, res) => {
       await Invitation.findOneAndUpdate({ invitationId }, { status: 'accepted' });
 
       // Notify interviewer about acceptance
-      if (io && connectedUsers.has(invitation.interviewer.id.toString())) {
-        io.to(invitation.interviewer.id.toString()).emit('invitation-accepted', {
+      const interviewerId = invitation.interviewer.id.toString();
+      console.log('Notifying interviewer about acceptance:', {
+        interviewerId,
+        isConnected: connectedUsers.has(interviewerId),
+        roomId
+      });
+      
+      if (io && connectedUsers.has(interviewerId)) {
+        io.to(interviewerId).emit('invitation-accepted', {
           roomId,
           interview,
           message: `${invitation.participant.name} accepted your interview invitation!`
         });
+        console.log('Invitation accepted event sent to interviewer');
+      } else {
+        console.log('Interviewer not connected or io not available');
       }
 
       res.json({

@@ -63,12 +63,20 @@ const FindMatch = () => {
       
       // Listen for invitation responses
       socket.on('invitation-accepted', (data) => {
-        toast.success(data.message);
-        navigate(`/interview/${data.roomId}`);
+        console.log('Invitation accepted:', data);
+        toast.success(data.message || 'Interview invitation accepted!');
+        
+        // Navigate to interview room
+        if (data.roomId) {
+          navigate(`/interview/${data.roomId}`);
+        } else {
+          console.error('No roomId provided in invitation-accepted event');
+        }
       });
 
       socket.on('invitation-rejected', (data) => {
-        toast.info(data.message);
+        console.log('Invitation rejected:', data);
+        toast.info(data.message || 'Interview invitation was declined');
       });
 
       return () => {

@@ -129,9 +129,10 @@ io.on('connection', (socket) => {
     if (userData && userData._id) {
       connectedUsers.set(userData._id, socket.id);
       socket.join(userData._id); // Join personal room with userId
-      console.log(`User ${userData._id} is online with socket ${socket.id}`);
+      console.log(`✅ User ${userData.name} (${userData._id}) is online with socket ${socket.id}`);
+      console.log(`📊 Total connected users: ${connectedUsers.size}`);
     } else {
-      console.log('Invalid user data received for user-online event:', userData);
+      console.log('❌ Invalid user data received for user-online event:', userData);
     }
   });
 
@@ -222,12 +223,13 @@ io.on('connection', (socket) => {
   });
 
   socket.on('disconnect', () => {
-    console.log('User disconnected:', socket.id);
+    console.log('🔌 User disconnected:', socket.id);
     // Remove user from connected users
     for (const [userId, socketId] of connectedUsers.entries()) {
       if (socketId === socket.id) {
         connectedUsers.delete(userId);
-        console.log(`User ${userId} went offline`);
+        console.log(`👋 User ${userId} went offline`);
+        console.log(`📊 Remaining connected users: ${connectedUsers.size}`);
         break;
       }
     }
@@ -281,6 +283,20 @@ mongoose.connect(mongoUri)
 // Add a basic health check route
 app.get('/api/health', (req, res) => {
   res.json({ message: 'Server is running', timestamp: new Date().toISOString() });
+});
+
+// Debug endpoint to check connected users
+app.get('/api/debug/connected-users', (req, res) => {
+  const connectedUsersList = Array.from(connectedUsers.entries()).map(([userId, socketId]) => ({
+    userId,
+    socketId
+  }));
+  
+  res.json({
+    totalConnected: connectedUsers.size,
+    users: connectedUsersList,
+    timestamp: new Date().toISOString()
+  });
 });
 
 const PORT = process.env.PORT || 10000;
