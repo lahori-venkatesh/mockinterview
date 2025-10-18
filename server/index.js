@@ -27,6 +27,9 @@ const paymentRoutes = require('./routes/payment');
 
 const app = express();
 const server = http.createServer(app);
+
+// Trust proxy for Render deployment (fixes rate limiting issues)
+app.set('trust proxy', 1);
 const io = socketIo(server, {
   cors: {
     origin: function (origin, callback) {
@@ -40,6 +43,7 @@ const io = socketIo(server, {
       
       // Define allowed origins (same as main CORS)
       const allowedOrigins = [
+        'https://mockwithpeers.vercel.app',
         'https://mockinterview-bdve.onrender.com',
         process.env.CORS_ORIGIN
       ].filter(Boolean);
@@ -106,6 +110,7 @@ const corsOptions = {
     
     // Define allowed origins
     const allowedOrigins = [
+      'https://mockwithpeers.vercel.app',
       'https://mockinterview-bdve.onrender.com',
       process.env.CORS_ORIGIN
     ].filter(Boolean); // Remove undefined values
