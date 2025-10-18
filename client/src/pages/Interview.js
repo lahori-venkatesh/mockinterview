@@ -159,6 +159,16 @@ const Interview = () => {
     }
   }, [socket, interview, user]);
 
+  // Auto-initiate peer connection when both stream and interview are ready
+  useEffect(() => {
+    if (stream && interview && interview.participants.length >= 2 && !peer) {
+      console.log('🔄 Auto-initiating peer connection - stream and interview ready');
+      setTimeout(() => {
+        initiatePeerConnection();
+      }, 2000);
+    }
+  }, [stream, interview, peer]);
+
   // Timer effect
   useEffect(() => {
     const timer = setInterval(() => {
@@ -204,6 +214,8 @@ const Interview = () => {
 
   const setupVideoCall = async () => {
     try {
+      console.log('🎥 Setting up video call...');
+      
       // Request permissions with better error handling
       const userStream = await navigator.mediaDevices.getUserMedia({
         video: {
@@ -213,33 +225,27 @@ const Interview = () => {
         },
         audio: {
           echoCancellation: true,
-          noiseSuppression: true
+          noiseSuppression: true,
+          autoGainControl: true
         }
       });
       
+      console.log('✅ Got user media stream:', userStream);
       setStream(userStream);
       setMediaPermissionGranted(true);
       setPermissionError('');
       
-      // Set video source - use setTimeout to ensure ref is ready
-      setTimeout(() => {
-        if (webcamRef.current) {
-          webcamRef.current.srcObject = userStream;
-          webcamRef.current.play().catch(console.error);
-        }
-      }, 100);
+      // Set video source immediately - no setTimeout needed
+      if (webcamRef.current) {
+        webcamRef.current.srcObject = userStream;
+        webcamRef.current.play().catch(console.error);
+        console.log('✅ Set user video stream to webcamRef');
+      }
       
       toast.success('Camera and microphone connected successfully');
       
-      // Auto-initiate connection if interview is ready
-      if (interview && interview.participants.length >= 2) {
-        setTimeout(() => {
-          initiatePeerConnection();
-        }, 2000);
-      }
-      
     } catch (error) {
-      console.error('Error accessing media devices:', error);
+      console.error('❌ Error accessing media devices:', error);
       
       let errorMessage = 'Error accessing camera/microphone. ';
       
@@ -259,24 +265,31 @@ const Interview = () => {
   };
 
   const handleUserJoined = (data) => {
-    console.log('User joined interview:', data);
+    console.log('👥 User joined interview:', data);
     toast.info(`Another user joined the interview`);
     
     // If we have our stream ready, initiate peer connection
     if (stream && !peer) {
+      console.log('🔄 Initiating peer connection after user joined...');
       setTimeout(() => {
         initiatePeerConnection();
-      }, 1000);
+      }, 1500);
     }
   };
 
   const initiatePeerConnection = () => {
-    if (!stream || peer) {
-      console.log('Stream not available or peer already exists');
+    if (!stream) {
+      console.log('❌ Stream not available for peer connection');
       return;
     }
+    
+    if (peer) {
+      console.log('⚠️ Peer already exists, destroying old one...');
+      peer.destroy();
+      setPeer(null);
+    }
 
-    console.log('Initiating peer connection...');
+    console.log('🚀 Initiating peer connection as initiator...');
     
     const newPeer = new Peer({
       initiator: true,
@@ -285,57 +298,78 @@ const Interview = () => {
       config: {
         iceServers: [
           { urls: 'stun:stun.l.google.com:19302' },
-          { urls: 'stun:stun1.l.google.com:19302' }
+          { urls: 'stun:stun1.l.google.com:19302' },
+          { urls: 'stun:stun2.l.google.com:19302' }
         ]
       }
     });
 
     newPeer.on('signal', (data) => {
-      console.log('Sending offer...');
+      console.log('📤 Sending offer via socket...');
       socket.emit('offer', { roomId, offer: data });
     });
 
     newPeer.on('stream', (partnerStream) => {
-      console.log('Received partner stream');
+      console.log('📥 Received partner stream!', partnerStream);
       setPartnerStream(partnerStream);
       
-      // Set partner video
-      setTimeout(() => {
-        if (partnerVideoRef.current) {
-          partnerVideoRef.current.srcObject = partnerStream;
-          partnerVideoRef.current.play().catch(console.error);
-        }
-      }, 100);
-      
-      toast.success('Connected to partner video!');
+      // Set partner video immediately
+      if (partnerVideoRef.current) {
+        partnerVideoRef.current.srcObject = partnerStream;
+        partnerVideoRef.current.play()
+          .then(() => {
+            console.log('✅ Partner video playing successfully');
+            toast.success('Connected to partner video!');
+          })
+          .catch(err => {
+            console.error('❌ Error playing partner video:', err);
+          });
+      } else {
+        console.error('❌ partnerVideoRef not available');
+      }
+    });
+
+    newPeer.on('connect', () => {
+      console.log('🔗 Peer connection established');
     });
 
     newPeer.on('error', (err) => {
-      console.error('Peer connection error:', err);
+      console.error('❌ Peer connection error:', err);
       toast.error('Video connection failed. Retrying...');
       
-      // Retry connection after 2 seconds
+      // Retry connection after 3 seconds
       setTimeout(() => {
         setPeer(null);
-        initiatePeerConnection();
-      }, 2000);
+        if (stream) {
+          initiatePeerConnection();
+        }
+      }, 3000);
     });
 
     newPeer.on('close', () => {
-      console.log('Peer connection closed');
+      console.log('🔌 Peer connection closed');
       setPartnerStream(null);
+      if (partnerVideoRef.current) {
+        partnerVideoRef.current.srcObject = null;
+      }
     });
 
     setPeer(newPeer);
   };
 
   const handleVideoOffer = (offer) => {
-    if (!stream || peer) {
-      console.log('Stream not available or peer already exists for answering offer');
+    if (!stream) {
+      console.log('❌ Stream not available for answering offer');
       return;
     }
+    
+    if (peer) {
+      console.log('⚠️ Peer already exists, destroying old one...');
+      peer.destroy();
+      setPeer(null);
+    }
 
-    console.log('Received video offer, creating answer peer...');
+    console.log('📥 Received video offer, creating answer peer...');
 
     const newPeer = new Peer({
       initiator: false,
@@ -344,46 +378,61 @@ const Interview = () => {
       config: {
         iceServers: [
           { urls: 'stun:stun.l.google.com:19302' },
-          { urls: 'stun:stun1.l.google.com:19302' }
+          { urls: 'stun:stun1.l.google.com:19302' },
+          { urls: 'stun:stun2.l.google.com:19302' }
         ]
       }
     });
 
     newPeer.on('signal', (data) => {
-      console.log('Sending answer...');
+      console.log('📤 Sending answer via socket...');
       socket.emit('answer', { roomId, answer: data });
     });
 
     newPeer.on('stream', (partnerStream) => {
-      console.log('Received partner stream (answerer)');
+      console.log('📥 Received partner stream (answerer)!', partnerStream);
       setPartnerStream(partnerStream);
       
-      // Set partner video
-      setTimeout(() => {
-        if (partnerVideoRef.current) {
-          partnerVideoRef.current.srcObject = partnerStream;
-          partnerVideoRef.current.play().catch(console.error);
-        }
-      }, 100);
-      
-      toast.success('Connected to partner video!');
+      // Set partner video immediately
+      if (partnerVideoRef.current) {
+        partnerVideoRef.current.srcObject = partnerStream;
+        partnerVideoRef.current.play()
+          .then(() => {
+            console.log('✅ Partner video playing successfully (answerer)');
+            toast.success('Connected to partner video!');
+          })
+          .catch(err => {
+            console.error('❌ Error playing partner video (answerer):', err);
+          });
+      } else {
+        console.error('❌ partnerVideoRef not available (answerer)');
+      }
+    });
+
+    newPeer.on('connect', () => {
+      console.log('🔗 Peer connection established (answerer)');
     });
 
     newPeer.on('error', (err) => {
-      console.error('Peer connection error (answerer):', err);
+      console.error('❌ Peer connection error (answerer):', err);
       toast.error('Video connection failed');
     });
 
     newPeer.on('close', () => {
-      console.log('Peer connection closed (answerer)');
+      console.log('🔌 Peer connection closed (answerer)');
       setPartnerStream(null);
+      if (partnerVideoRef.current) {
+        partnerVideoRef.current.srcObject = null;
+      }
     });
 
     try {
       newPeer.signal(offer);
       setPeer(newPeer);
+      console.log('✅ Successfully signaled offer');
     } catch (error) {
-      console.error('Error signaling offer:', error);
+      console.error('❌ Error signaling offer:', error);
+      toast.error('Failed to process video offer');
     }
   };
 
@@ -709,6 +758,24 @@ const Interview = () => {
                 </Tooltip>
                 <Button
                   variant="outlined"
+                  color="primary"
+                  onClick={() => {
+                    console.log('🔄 Manual peer connection attempt');
+                    if (stream && !peer) {
+                      initiatePeerConnection();
+                    } else if (!stream) {
+                      setupVideoCall();
+                    } else {
+                      console.log('Peer already exists or stream not available');
+                    }
+                  }}
+                  sx={{ mr: 1 }}
+                  size="small"
+                >
+                  Connect Video
+                </Button>
+                <Button
+                  variant="outlined"
                   color="secondary"
                   onClick={() => {
                     console.log('Opening feedback dialog...');
@@ -819,11 +886,35 @@ const Interview = () => {
                     borderRadius: '0 8px 8px 0',
                     overflow: 'hidden'
                   }}>
-                    <video
-                      ref={partnerVideoRef}
-                      autoPlay
-                      style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                    />
+                    {partnerStream ? (
+                      <video
+                        ref={partnerVideoRef}
+                        autoPlay
+                        playsInline
+                        style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                      />
+                    ) : (
+                      <Box sx={{
+                        position: 'absolute',
+                        top: 0,
+                        left: 0,
+                        width: '100%',
+                        height: '100%',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        bgcolor: '#2a2a2a',
+                        color: 'white'
+                      }}>
+                        <Avatar sx={{ width: 80, height: 80, bgcolor: 'secondary.main', mb: 2 }}>
+                          {partner?.userId.name?.charAt(0).toUpperCase() || 'P'}
+                        </Avatar>
+                        <Typography variant="body2">
+                          Waiting for {partner?.userId.name || 'partner'} to connect...
+                        </Typography>
+                      </Box>
+                    )}
                     <Box sx={{
                       position: 'absolute',
                       bottom: 8,
