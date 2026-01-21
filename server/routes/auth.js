@@ -1,13 +1,17 @@
 const express = require('express');
 const jwt = require('jsonwebtoken');
+const { OAuth2Client } = require('google-auth-library');
 const User = require('../models/User');
 const router = express.Router();
+
+const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
+
 
 // Register
 router.post('/register', async (req, res) => {
   try {
     console.log('Registration request received:', req.body);
-    
+
     const { name, email, password, skills = [], domain = '', experience = '', gender = '' } = req.body;
 
     // Validate required fields (only name, email, password are required now)
@@ -110,6 +114,91 @@ router.post('/login', async (req, res) => {
   }
 });
 
+// Google OAuth Login/Register
+router.post('/google', async (req, res) => {
+  try {
+    const { credential } = req.body;
+
+    if (!credential) {
+      return res.status(400).json({ message: 'Google credential is required' });
+    }
+
+    // Verify Google token
+    let ticket;
+    try {
+      ticket = await googleClient.verifyIdToken({
+        idToken: credential,
+        audience: process.env.GOOGLE_CLIENT_ID
+      });
+    } catch (verifyError) {
+      console.error('Google token verification failed:', verifyError);
+      return res.status(401).json({ message: 'Invalid Google token' });
+    }
+
+    const payload = ticket.getPayload();
+    const { sub: googleId, email, name, picture } = payload;
+
+    // Check if user exists by email or googleId
+    let user = await User.findOne({ $or: [{ email }, { googleId }] });
+
+    if (user) {
+      // Update existing user with Google info if not already set
+      if (!user.googleId) {
+        user.googleId = googleId;
+        user.authProvider = 'google';
+      }
+      if (picture && !user.profilePicture) {
+        user.profilePicture = picture;
+      }
+      user.lastActive = new Date();
+      user.isOnline = true;
+      user.lastLogin = new Date();
+      await user.save();
+    } else {
+      // Create new user
+      user = new User({
+        name,
+        email,
+        googleId,
+        authProvider: 'google',
+        profilePicture: picture || '',
+        isOnline: true,
+        lastActive: new Date(),
+        lastLogin: new Date()
+      });
+      await user.save();
+    }
+
+    // Generate JWT token
+    const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET, {
+      expiresIn: '7d'
+    });
+
+    res.json({
+      message: 'Google authentication successful',
+      token,
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        skills: user.skills,
+        domain: user.domain,
+        experience: user.experience,
+        gender: user.gender,
+        isPremium: user.isPremium,
+        rating: user.rating,
+        totalInterviews: user.totalInterviews,
+        role: user.role || 'user',
+        profilePicture: user.profilePicture,
+        profileComplete: user.skills.length > 0 && user.domain !== 'Not specified' && user.experience !== 'Not specified'
+      }
+    });
+  } catch (error) {
+    console.error('Google OAuth error:', error);
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+});
+
 // Forgot Password
 router.post('/forgot-password', async (req, res) => {
   try {
@@ -130,11 +219,11 @@ router.post('/forgot-password', async (req, res) => {
 
     // In production, send actual email here
     console.log(`Password reset token for ${email}: ${resetToken}`);
-    
-    res.json({ 
+
+    res.json({
       message: 'Password reset email sent successfully',
       // Remove this in production - only for demo
-      resetToken: resetToken 
+      resetToken: resetToken
     });
   } catch (error) {
     res.status(500).json({ message: 'Server error', error: error.message });

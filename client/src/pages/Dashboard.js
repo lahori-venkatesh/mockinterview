@@ -28,7 +28,8 @@ import {
   TrendingUp as TrendingUpIcon,
   People as PeopleIcon,
   EmojiEvents as TrophyIcon,
-  Upgrade as UpgradeIcon
+  Upgrade as UpgradeIcon,
+  Mail as InvitationsIcon
 } from '@mui/icons-material';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
@@ -94,7 +95,7 @@ const Dashboard = () => {
       try {
         const s = window.sessionStorage.getItem('recentSentInvitation');
         if (s) recent = JSON.parse(s);
-      } catch (_) {}
+      } catch (_) { }
     }
     if (recent && !sentInvitations.find((i) => (i.id || i._id) === (recent.id || recent._id))) {
       setSentInvitations((prev) => [recent, ...prev]);
@@ -103,7 +104,7 @@ const Dashboard = () => {
 
   useEffect(() => {
     if (!socket) return;
-    
+
     const handleInvitation = (invitation) => {
       setInvitations((prev) => {
         const exists = prev.some((i) => i.id === invitation.id);
@@ -114,7 +115,7 @@ const Dashboard = () => {
     const handleInvitationAccepted = (data) => {
       console.log('Invitation accepted on dashboard:', data);
       toast.success(data.message || 'Interview invitation accepted!');
-      
+
       // Navigate to interview room
       if (data.roomId) {
         navigate(`/interview/${data.roomId}`);
@@ -127,11 +128,11 @@ const Dashboard = () => {
       console.log('Invitation rejected on dashboard:', data);
       toast.info(data.message || 'Interview invitation was declined');
     };
-    
+
     socket.on('interview-invitation', handleInvitation);
     socket.on('invitation-accepted', handleInvitationAccepted);
     socket.on('invitation-rejected', handleInvitationRejected);
-    
+
     return () => {
       socket.off('interview-invitation', handleInvitation);
       socket.off('invitation-accepted', handleInvitationAccepted);
@@ -205,42 +206,103 @@ const Dashboard = () => {
   return (
     <Box sx={{ bgcolor: '#f8fafc', minHeight: '100vh', pb: 4 }}>
       <Container maxWidth="lg" sx={{ pt: 4 }}>
-        {/* Welcome Header */}
-        <Box sx={{ mb: 4 }}>
-          <Typography variant="h3" sx={{ fontWeight: 'bold', mb: 1 }}>
-            Welcome back, {user?.name}! 👋
-          </Typography>
-          <Typography variant="h6" color="textSecondary">
-            Ready to ace your next interview? Let's get started!
-          </Typography>
+        {/* Enhanced Hero Section with Glassmorphism */}
+        <Box
+          sx={{
+            mb: 4,
+            position: 'relative',
+            borderRadius: 4,
+            overflow: 'hidden',
+            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+            p: 4,
+            color: 'white',
+            boxShadow: '0 20px 60px rgba(102, 126, 234, 0.3)',
+          }}
+        >
+          {/* Animated Background Circles */}
+          <Box sx={{
+            position: 'absolute',
+            top: -100,
+            right: -100,
+            width: 300,
+            height: 300,
+            bgcolor: 'rgba(255,255,255,0.1)',
+            borderRadius: '50%',
+            animation: 'float 6s ease-in-out infinite'
+          }} />
+          <Box sx={{
+            position: 'absolute',
+            bottom: -50,
+            left: -50,
+            width: 200,
+            height: 200,
+            bgcolor: 'rgba(255,255,255,0.08)',
+            borderRadius: '50%',
+            animation: 'float 8s ease-in-out infinite reverse'
+          }} />
+
+          <Box sx={{ position: 'relative', zIndex: 1 }}>
+            <Typography
+              variant="h3"
+              sx={{
+                fontWeight: 'bold',
+                mb: 1,
+                textShadow: '0 2px 10px rgba(0,0,0,0.1)',
+                fontSize: { xs: '2rem', md: '3rem' }
+              }}
+            >
+              Welcome back, {user?.name}! 👋
+            </Typography>
+            <Typography
+              variant="h6"
+              sx={{
+                opacity: 0.95,
+                fontWeight: 400,
+                fontSize: { xs: '1rem', md: '1.25rem' }
+              }}
+            >
+              Ready to ace your next interview? Let's get started!
+            </Typography>
+          </Box>
+
+          {/* Add keyframe animation */}
+          <style>
+            {`
+              @keyframes float {
+                0%, 100% { transform: translateY(0px); }
+                50% { transform: translateY(-20px); }
+              }
+            `}
+          </style>
         </Box>
 
         <Grid container spacing={3}>
           {/* Enhanced Profile Card */}
           <Grid item xs={12} md={4}>
-            <Card sx={{ 
+            <Card sx={{
               background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
               color: 'white',
               position: 'relative',
-              overflow: 'hidden'
+              overflow: 'hidden',
+              boxShadow: '0 8px 32px rgba(102, 126, 234, 0.3)'
             }}>
-              <Box sx={{ 
-                position: 'absolute', 
-                top: -50, 
-                right: -50, 
-                width: 100, 
-                height: 100, 
-                bgcolor: 'rgba(255,255,255,0.1)', 
-                borderRadius: '50%' 
+              <Box sx={{
+                position: 'absolute',
+                top: -50,
+                right: -50,
+                width: 100,
+                height: 100,
+                bgcolor: 'rgba(255,255,255,0.1)',
+                borderRadius: '50%'
               }} />
               <CardContent sx={{ position: 'relative', zIndex: 1 }}>
                 <Box display="flex" alignItems="center" mb={3}>
-                  <Avatar 
+                  <Avatar
                     src={user?.profilePicture ? `${API_BASE_URL}${user.profilePicture}` : ''}
-                    sx={{ 
-                      width: 70, 
-                      height: 70, 
-                      mr: 2, 
+                    sx={{
+                      width: 70,
+                      height: 70,
+                      mr: 2,
                       border: '3px solid rgba(255,255,255,0.3)',
                       bgcolor: 'rgba(255,255,255,0.2)'
                     }}
@@ -257,22 +319,22 @@ const Dashboard = () => {
                       </Typography>
                     )}
                     {user?.isPremium && (
-                      <Chip 
-                        label="Premium" 
-                        size="small" 
-                        sx={{ 
-                          bgcolor: 'gold', 
+                      <Chip
+                        label="Premium"
+                        size="small"
+                        sx={{
+                          bgcolor: 'gold',
                           color: 'black',
                           fontWeight: 'bold',
                           mt: 0.5
-                        }} 
+                        }}
                       />
                     )}
                   </Box>
                 </Box>
-                
+
                 <Divider sx={{ bgcolor: 'rgba(255,255,255,0.2)', mb: 2 }} />
-                
+
                 <Box mb={2}>
                   <Typography variant="body2" sx={{ opacity: 0.9, mb: 1 }}>
                     Experience Level
@@ -299,25 +361,25 @@ const Dashboard = () => {
                   </Typography>
                   <Box display="flex" flexWrap="wrap" gap={0.5}>
                     {user?.skills?.slice(0, 3).map((skill) => (
-                      <Chip 
-                        key={skill} 
-                        label={skill} 
-                        size="small" 
-                        sx={{ 
-                          bgcolor: 'rgba(255,255,255,0.2)', 
+                      <Chip
+                        key={skill}
+                        label={skill}
+                        size="small"
+                        sx={{
+                          bgcolor: 'rgba(255,255,255,0.2)',
                           color: 'white',
                           border: '1px solid rgba(255,255,255,0.3)'
-                        }} 
+                        }}
                       />
                     ))}
                     {user?.skills?.length > 3 && (
-                      <Chip 
-                        label={`+${user.skills.length - 3} more`} 
-                        size="small" 
-                        sx={{ 
-                          bgcolor: 'rgba(255,255,255,0.1)', 
-                          color: 'white' 
-                        }} 
+                      <Chip
+                        label={`+${user.skills.length - 3} more`}
+                        size="small"
+                        sx={{
+                          bgcolor: 'rgba(255,255,255,0.1)',
+                          color: 'white'
+                        }}
                       />
                     )}
                   </Box>
@@ -330,10 +392,17 @@ const Dashboard = () => {
           <Grid item xs={12} md={8}>
             <Grid container spacing={2}>
               <Grid item xs={12} sm={4}>
-                <Card sx={{ 
-                  background: 'linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%)',
+                <Card sx={{
+                  background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
                   color: 'white',
-                  textAlign: 'center'
+                  textAlign: 'center',
+                  transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                  cursor: 'pointer',
+                  boxShadow: '0 8px 24px rgba(102, 126, 234, 0.25)',
+                  '&:hover': {
+                    transform: 'translateY(-8px)',
+                    boxShadow: '0 20px 40px rgba(102, 126, 234, 0.4)'
+                  }
                 }}>
                   <CardContent>
                     <TrophyIcon sx={{ fontSize: 40, mb: 1 }} />
@@ -347,10 +416,17 @@ const Dashboard = () => {
                 </Card>
               </Grid>
               <Grid item xs={12} sm={4}>
-                <Card sx={{ 
-                  background: 'linear-gradient(135deg, #feca57 0%, #ff9ff3 100%)',
+                <Card sx={{
+                  background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
                   color: 'white',
-                  textAlign: 'center'
+                  textAlign: 'center',
+                  transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                  cursor: 'pointer',
+                  boxShadow: '0 8px 24px rgba(102, 126, 234, 0.25)',
+                  '&:hover': {
+                    transform: 'translateY(-8px)',
+                    boxShadow: '0 20px 40px rgba(102, 126, 234, 0.4)'
+                  }
                 }}>
                   <CardContent>
                     <StarIcon sx={{ fontSize: 40, mb: 1 }} />
@@ -360,25 +436,32 @@ const Dashboard = () => {
                     <Typography variant="body2" sx={{ opacity: 0.9 }}>
                       Average Rating
                     </Typography>
-                    <LinearProgress 
-                      variant="determinate" 
-                      value={(stats.rating / 5) * 100} 
-                      sx={{ 
-                        mt: 1, 
+                    <LinearProgress
+                      variant="determinate"
+                      value={(stats.rating / 5) * 100}
+                      sx={{
+                        mt: 1,
                         bgcolor: 'rgba(255,255,255,0.3)',
                         '& .MuiLinearProgress-bar': {
                           bgcolor: 'rgba(255,255,255,0.8)'
                         }
-                      }} 
+                      }}
                     />
                   </CardContent>
                 </Card>
               </Grid>
               <Grid item xs={12} sm={4}>
-                <Card sx={{ 
-                  background: 'linear-gradient(135deg, #48dbfb 0%, #0abde3 100%)',
+                <Card sx={{
+                  background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
                   color: 'white',
-                  textAlign: 'center'
+                  textAlign: 'center',
+                  transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                  cursor: 'pointer',
+                  boxShadow: '0 8px 24px rgba(102, 126, 234, 0.25)',
+                  '&:hover': {
+                    transform: 'translateY(-8px)',
+                    boxShadow: '0 20px 40px rgba(102, 126, 234, 0.4)'
+                  }
                 }}>
                   <CardContent>
                     <PeopleIcon sx={{ fontSize: 40, mb: 1 }} />
@@ -426,120 +509,120 @@ const Dashboard = () => {
             </Card>
           </Grid>
 
-        {/* Interview Invitations */}
-        <Grid item xs={12}>
-          <Card sx={{ borderRadius: 3, boxShadow: '0 8px 32px rgba(0,0,0,0.06)' }}>
-            <CardContent sx={{ p: 3 }}>
-              <Box display="flex" alignItems="center" justifyContent="space-between" mb={1.5}>
-                <Typography variant="h5" sx={{ fontWeight: 'bold' }}>
-                  Interview Invitations
-                </Typography>
-                <Button size="small" onClick={fetchPendingInvitations}>Refresh</Button>
-              </Box>
-              {invitations.length === 0 ? (
-                <Box sx={{ textAlign: 'center', py: 3, color: 'text.secondary' }}>
-                  No pending invitations
+          {/* Interview Invitations */}
+          <Grid item xs={12}>
+            <Card sx={{ borderRadius: 3, boxShadow: '0 8px 32px rgba(0,0,0,0.06)' }}>
+              <CardContent sx={{ p: 3 }}>
+                <Box display="flex" alignItems="center" justifyContent="space-between" mb={1.5}>
+                  <Typography variant="h5" sx={{ fontWeight: 'bold' }}>
+                    Interview Invitations
+                  </Typography>
+                  <Button size="small" onClick={fetchPendingInvitations}>Refresh</Button>
                 </Box>
-              ) : (
-                <List>
-                  {invitations.map((inv) => (
-                    <ListItem key={inv.id} divider>
-                      <ListItemAvatar>
-                        <Avatar src={inv.interviewer?.profilePicture ? `${API_BASE_URL}${inv.interviewer.profilePicture}` : ''}>
-                          {inv.interviewer?.name?.charAt(0)?.toUpperCase()}
-                        </Avatar>
-                      </ListItemAvatar>
-                      <ListItemText
-                        primary={inv.interviewer?.name || 'Interviewer'}
-                        secondary={
-                          <Stack direction="row" spacing={1} alignItems="center">
-                            <Chip size="small" label={inv.domain || 'General'} />
-                            {inv.selectedQuestions?.length ? (
-                              <Chip size="small" variant="outlined" label={`${inv.selectedQuestions.length} questions`} />
-                            ) : null}
+                {invitations.length === 0 ? (
+                  <Box sx={{ textAlign: 'center', py: 3, color: 'text.secondary' }}>
+                    No pending invitations
+                  </Box>
+                ) : (
+                  <List>
+                    {invitations.map((inv) => (
+                      <ListItem key={inv.id} divider>
+                        <ListItemAvatar>
+                          <Avatar src={inv.interviewer?.profilePicture ? `${API_BASE_URL}${inv.interviewer.profilePicture}` : ''}>
+                            {inv.interviewer?.name?.charAt(0)?.toUpperCase()}
+                          </Avatar>
+                        </ListItemAvatar>
+                        <ListItemText
+                          primary={inv.interviewer?.name || 'Interviewer'}
+                          secondary={
+                            <Stack direction="row" spacing={1} alignItems="center">
+                              <Chip size="small" label={inv.domain || 'General'} />
+                              {inv.selectedQuestions?.length ? (
+                                <Chip size="small" variant="outlined" label={`${inv.selectedQuestions.length} questions`} />
+                              ) : null}
+                            </Stack>
+                          }
+                        />
+                        <ListItemSecondaryAction>
+                          <Stack direction="row" spacing={1}>
+                            <Button size="small" variant="outlined" color="error" onClick={() => handleRespondInvitation(inv.id, 'reject')}>
+                              Decline
+                            </Button>
+                            <Button size="small" variant="contained" onClick={() => handleRespondInvitation(inv.id, 'accept')}>
+                              Accept
+                            </Button>
                           </Stack>
-                        }
-                      />
-                      <ListItemSecondaryAction>
-                        <Stack direction="row" spacing={1}>
-                          <Button size="small" variant="outlined" color="error" onClick={() => handleRespondInvitation(inv.id, 'reject')}>
-                            Decline
-                          </Button>
-                          <Button size="small" variant="contained" onClick={() => handleRespondInvitation(inv.id, 'accept')}>
-                            Accept
-                          </Button>
-                        </Stack>
-                      </ListItemSecondaryAction>
-                    </ListItem>
-                  ))}
-                </List>
-              )}
-            </CardContent>
-          </Card>
-        </Grid>
+                        </ListItemSecondaryAction>
+                      </ListItem>
+                    ))}
+                  </List>
+                )}
+              </CardContent>
+            </Card>
+          </Grid>
 
-        {/* Sent Invitations */}
-        <Grid item xs={12} id="sent-invitations-section">
-          <Card sx={{ borderRadius: 3, boxShadow: '0 8px 32px rgba(0,0,0,0.06)' }}>
-            <CardContent sx={{ p: 3 }}>
-              <Box display="flex" alignItems="center" justifyContent="space-between" mb={1.5}>
-                <Typography variant="h5" sx={{ fontWeight: 'bold' }}>
-                  Sent Invitations
-                </Typography>
-                <Button size="small" onClick={fetchSentInvitations}>Refresh</Button>
-              </Box>
-              {sentInvitations.length === 0 ? (
-                <Box sx={{ textAlign: 'center', py: 3, color: 'text.secondary' }}>
-                  No sent invitations yet
+          {/* Sent Invitations */}
+          <Grid item xs={12} id="sent-invitations-section">
+            <Card sx={{ borderRadius: 3, boxShadow: '0 8px 32px rgba(0,0,0,0.06)' }}>
+              <CardContent sx={{ p: 3 }}>
+                <Box display="flex" alignItems="center" justifyContent="space-between" mb={1.5}>
+                  <Typography variant="h5" sx={{ fontWeight: 'bold' }}>
+                    Sent Invitations
+                  </Typography>
+                  <Button size="small" onClick={fetchSentInvitations}>Refresh</Button>
                 </Box>
-              ) : (
-                <List>
-                  {sentInvitations.map((inv) => (
-                    <ListItem key={inv.id || inv._id} divider>
-                      <ListItemAvatar>
-                        <Avatar src={inv.recipient?.profilePicture ? `${API_BASE_URL}${inv.recipient.profilePicture}` : ''}>
-                          {inv.recipient?.name?.charAt(0)?.toUpperCase()}
-                        </Avatar>
-                      </ListItemAvatar>
-                      <ListItemText
-                        primary={inv.recipient?.name || 'Recipient'}
-                        secondary={
-                          <Stack direction="row" spacing={1} alignItems="center">
-                            <Chip size="small" label={inv.domain || inv.recipient?.domain || 'General'} />
-                            {inv.selectedQuestions?.length ? (
-                              <Chip size="small" variant="outlined" label={`${inv.selectedQuestions.length} questions`} />
-                            ) : null}
-                            {inv.status && (
-                              <Chip size="small" color={inv.status === 'accepted' ? 'success' : inv.status === 'rejected' ? 'error' : 'default'} label={inv.status} />
+                {sentInvitations.length === 0 ? (
+                  <Box sx={{ textAlign: 'center', py: 3, color: 'text.secondary' }}>
+                    No sent invitations yet
+                  </Box>
+                ) : (
+                  <List>
+                    {sentInvitations.map((inv) => (
+                      <ListItem key={inv.id || inv._id} divider>
+                        <ListItemAvatar>
+                          <Avatar src={inv.recipient?.profilePicture ? `${API_BASE_URL}${inv.recipient.profilePicture}` : ''}>
+                            {inv.recipient?.name?.charAt(0)?.toUpperCase()}
+                          </Avatar>
+                        </ListItemAvatar>
+                        <ListItemText
+                          primary={inv.recipient?.name || 'Recipient'}
+                          secondary={
+                            <Stack direction="row" spacing={1} alignItems="center">
+                              <Chip size="small" label={inv.domain || inv.recipient?.domain || 'General'} />
+                              {inv.selectedQuestions?.length ? (
+                                <Chip size="small" variant="outlined" label={`${inv.selectedQuestions.length} questions`} />
+                              ) : null}
+                              {inv.status && (
+                                <Chip size="small" color={inv.status === 'accepted' ? 'success' : inv.status === 'rejected' ? 'error' : 'default'} label={inv.status} />
+                              )}
+                            </Stack>
+                          }
+                        />
+                        <ListItemSecondaryAction>
+                          <Stack direction="row" spacing={1}>
+                            {/* Optional: Cancel sent invitation if pending */}
+                            {(!inv.status || inv.status === 'pending') && (
+                              <Button size="small" variant="outlined" color="error" onClick={async () => {
+                                try {
+                                  await axios.post(`${API_BASE_URL}/api/interviews/cancel-invitation/${inv.id || inv._id}`);
+                                } catch (e) {
+                                  // ignore
+                                } finally {
+                                  setSentInvitations((prev) => prev.filter((i) => (i.id || i._id) !== (inv.id || inv._id)));
+                                }
+                              }}>
+                                Cancel
+                              </Button>
                             )}
                           </Stack>
-                        }
-                      />
-                      <ListItemSecondaryAction>
-                        <Stack direction="row" spacing={1}>
-                          {/* Optional: Cancel sent invitation if pending */}
-                          {(!inv.status || inv.status === 'pending') && (
-                            <Button size="small" variant="outlined" color="error" onClick={async () => {
-                              try {
-                                await axios.post(`${API_BASE_URL}/api/interviews/cancel-invitation/${inv.id || inv._id}`);
-                              } catch (e) {
-                                // ignore
-                              } finally {
-                                setSentInvitations((prev) => prev.filter((i) => (i.id || i._id) !== (inv.id || inv._id)));
-                              }
-                            }}>
-                              Cancel
-                            </Button>
-                          )}
-                        </Stack>
-                      </ListItemSecondaryAction>
-                    </ListItem>
-                  ))}
-                </List>
-              )}
-            </CardContent>
-          </Card>
-        </Grid>
+                        </ListItemSecondaryAction>
+                      </ListItem>
+                    ))}
+                  </List>
+                )}
+              </CardContent>
+            </Card>
+          </Grid>
 
           {/* Enhanced Quick Actions */}
           <Grid item xs={12}>
@@ -556,7 +639,7 @@ const Dashboard = () => {
                       fullWidth
                       startIcon={<PlayIcon />}
                       onClick={() => navigate('/find-match')}
-                      sx={{ 
+                      sx={{
                         py: 2,
                         background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
                         borderRadius: 2,
@@ -575,7 +658,7 @@ const Dashboard = () => {
                       fullWidth
                       startIcon={<HistoryIcon />}
                       onClick={() => navigate('/history')}
-                      sx={{ 
+                      sx={{
                         py: 2,
                         borderRadius: 2,
                         textTransform: 'none',
@@ -591,9 +674,9 @@ const Dashboard = () => {
                       variant="outlined"
                       size="large"
                       fullWidth
-                      startIcon={<PersonIcon />}
-                      onClick={() => navigate('/profile')}
-                      sx={{ 
+                      startIcon={<InvitationsIcon />}
+                      onClick={() => navigate('/invitations')}
+                      sx={{
                         py: 2,
                         borderRadius: 2,
                         textTransform: 'none',
@@ -601,7 +684,7 @@ const Dashboard = () => {
                         fontWeight: 'bold'
                       }}
                     >
-                      Edit Profile
+                      Invitations
                     </Button>
                   </Grid>
                   <Grid item xs={12} sm={6} md={3}>
@@ -611,7 +694,7 @@ const Dashboard = () => {
                         size="large"
                         fullWidth
                         startIcon={<UpgradeIcon />}
-                        sx={{ 
+                        sx={{
                           py: 2,
                           background: 'linear-gradient(135deg, #feca57 0%, #ff9ff3 100%)',
                           borderRadius: 2,
@@ -628,7 +711,7 @@ const Dashboard = () => {
                         size="large"
                         fullWidth
                         startIcon={<TrendingUpIcon />}
-                        sx={{ 
+                        sx={{
                           py: 2,
                           borderRadius: 2,
                           textTransform: 'none',
@@ -654,8 +737,8 @@ const Dashboard = () => {
                 <Typography variant="h5" sx={{ fontWeight: 'bold', mb: 3 }}>
                   📊 Recent Activity
                 </Typography>
-                <Box sx={{ 
-                  textAlign: 'center', 
+                <Box sx={{
+                  textAlign: 'center',
                   py: 4,
                   bgcolor: '#f8fafc',
                   borderRadius: 2,
@@ -672,7 +755,7 @@ const Dashboard = () => {
                     variant="contained"
                     startIcon={<PlayIcon />}
                     onClick={() => navigate('/find-match')}
-                    sx={{ 
+                    sx={{
                       background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
                       textTransform: 'none',
                       fontWeight: 'bold'

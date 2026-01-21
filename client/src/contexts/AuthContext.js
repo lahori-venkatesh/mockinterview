@@ -44,15 +44,15 @@ export const AuthProvider = ({ children }) => {
         email,
         password
       });
-      
+
       const { token, user } = response.data;
       localStorage.setItem('token', token);
       axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
       setUser(user);
-      
+
       return { success: true };
     } catch (error) {
-      
+
       let errorMessage = 'Login failed';
       if (error.response?.status === 400) {
         errorMessage = error.response.data.message || 'Invalid email or password';
@@ -61,9 +61,9 @@ export const AuthProvider = ({ children }) => {
       } else if (error.code === 'ECONNREFUSED') {
         errorMessage = 'Cannot connect to server. Please check if the server is running.';
       }
-      
-      return { 
-        success: false, 
+
+      return {
+        success: false,
         message: errorMessage
       };
     }
@@ -72,21 +72,44 @@ export const AuthProvider = ({ children }) => {
   const register = async (userData) => {
     try {
       const response = await axios.post(`${API_BASE_URL}/api/auth/register`, userData);
-      
+
       const { token, user } = response.data;
       localStorage.setItem('token', token);
       axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
       setUser(user);
-      
+
       return { success: true };
     } catch (error) {
       const errorMessage = error.response?.data?.message || error.message || 'Registration failed';
-      return { 
-        success: false, 
+      return {
+        success: false,
         message: errorMessage
       };
     }
   };
+
+  const googleLogin = async (credential) => {
+    try {
+      const response = await axios.post(`${API_BASE_URL}/api/auth/google`, {
+        credential
+      });
+
+      const { token, user } = response.data;
+      localStorage.setItem('token', token);
+      axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+      setUser(user);
+
+      return { success: true, user };
+    } catch (error) {
+      console.error('Google login error:', error);
+      const errorMessage = error.response?.data?.message || error.message || 'Google authentication failed';
+      return {
+        success: false,
+        message: errorMessage
+      };
+    }
+  };
+
 
   const logout = () => {
     localStorage.removeItem('token');
@@ -111,13 +134,13 @@ export const AuthProvider = ({ children }) => {
   const isProfileComplete = (user) => {
     if (!user) return false;
     return !!(
-      user.domain && 
+      user.domain &&
       user.domain !== 'Not specified' &&
-      user.skills && 
+      user.skills &&
       user.skills.length > 0 &&
-      user.experience && 
+      user.experience &&
       user.experience !== 'Not specified' &&
-      user.gender && 
+      user.gender &&
       user.gender !== 'Not specified'
     );
   };
@@ -128,9 +151,9 @@ export const AuthProvider = ({ children }) => {
       setUser(prev => ({ ...prev, ...response.data }));
       return { success: true };
     } catch (error) {
-      return { 
-        success: false, 
-        message: error.response?.data?.message || 'Profile update failed' 
+      return {
+        success: false,
+        message: error.response?.data?.message || 'Profile update failed'
       };
     }
   };
@@ -139,6 +162,7 @@ export const AuthProvider = ({ children }) => {
     user,
     login,
     register,
+    googleLogin,
     logout,
     updateUser,
     updateProfile,

@@ -5,6 +5,7 @@ import { ThemeProvider } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
+import { GoogleOAuthProvider } from '@react-oauth/google';
 import App from './App';
 import theme from './theme';
 import { AuthProvider } from './contexts/AuthContext';
@@ -20,19 +21,21 @@ const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(
   <React.StrictMode>
     <ErrorBoundary>
-      <BrowserRouter>
-        <ThemeProvider theme={theme}>
-          <CssBaseline />
-          <AuthProvider>
-            <SocketProvider>
-              <InvitationProvider>
-                <App />
-                <ToastContainer position="top-right" autoClose={3000} />
-              </InvitationProvider>
-            </SocketProvider>
-          </AuthProvider>
-        </ThemeProvider>
-      </BrowserRouter>
+      <GoogleOAuthProvider clientId={process.env.REACT_APP_GOOGLE_CLIENT_ID}>
+        <BrowserRouter>
+          <ThemeProvider theme={theme}>
+            <CssBaseline />
+            <AuthProvider>
+              <SocketProvider>
+                <InvitationProvider>
+                  <App />
+                  <ToastContainer position="top-right" autoClose={3000} />
+                </InvitationProvider>
+              </SocketProvider>
+            </AuthProvider>
+          </ThemeProvider>
+        </BrowserRouter>
+      </GoogleOAuthProvider>
     </ErrorBoundary>
   </React.StrictMode>
 );

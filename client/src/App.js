@@ -2,7 +2,7 @@ import React from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { useAuth } from './contexts/AuthContext';
 import Navbar from './components/Navbar';
-import InvitationManager from './components/InvitationManager';
+import GlobalInvitationHandler from './components/GlobalInvitationHandler';
 import LandingPage from './pages/LandingPage';
 import Login from './pages/Login';
 import Register from './pages/Register';
@@ -16,6 +16,7 @@ import AccountSettings from './pages/AccountSettings';
 import History from './pages/History';
 import AdminDashboard from './pages/AdminDashboard';
 import Premium from './pages/Premium';
+import Invitations from './pages/Invitations';
 
 function App() {
   const { user, loading, isProfileComplete } = useAuth();
@@ -45,7 +46,7 @@ function App() {
   return (
     <div className="App">
       {user && <Navbar />}
-      {user && <InvitationManager />}
+      {user && <GlobalInvitationHandler />}
       <Routes>
         <Route 
           path="/" 
@@ -88,6 +89,14 @@ function App() {
           element={
             user ? 
             (shouldRedirectToProfileSetup(user) ? <Navigate to="/profile-setup" /> : <FindMatch />) :
+            <Navigate to="/" />
+          } 
+        />
+        <Route 
+          path="/invitations" 
+          element={
+            user ? 
+            (shouldRedirectToProfileSetup(user) ? <Navigate to="/profile-setup" /> : <Invitations />) :
             <Navigate to="/" />
           } 
         />

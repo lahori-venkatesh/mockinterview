@@ -11,6 +11,9 @@ import {
   Divider,
   IconButton,
   InputAdornment,
+  Grid,
+  Stack,
+  Chip,
   useTheme,
   alpha
 } from '@mui/material';
@@ -21,8 +24,9 @@ import {
   Email,
   Lock,
   Person,
-  ArrowBack
+  Close
 } from '@mui/icons-material';
+import { GoogleLogin } from '@react-oauth/google';
 import { Link as RouterLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -37,7 +41,7 @@ const Register = () => {
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const { register } = useAuth();
+  const { register, googleLogin } = useAuth();
   const navigate = useNavigate();
   const theme = useTheme();
 
@@ -48,9 +52,28 @@ const Register = () => {
     });
   };
 
-  const handleGoogleSignUp = () => {
-    // TODO: Implement Google OAuth
-    console.log('Google signup clicked');
+  const handleGoogleSuccess = async (credentialResponse) => {
+    setLoading(true);
+    setError('');
+
+    const result = await googleLogin(credentialResponse.credential);
+
+    if (result.success) {
+      // Check if profile is complete
+      if (result.user.profileComplete) {
+        navigate('/dashboard');
+      } else {
+        navigate('/profile-setup');
+      }
+    } else {
+      setError(result.message);
+    }
+
+    setLoading(false);
+  };
+
+  const handleGoogleError = () => {
+    setError('Google sign-up failed. Please try again.');
   };
 
   const togglePasswordVisibility = () => {
@@ -80,269 +103,293 @@ const Register = () => {
 
     const { confirmPassword, ...userData } = formData;
     const result = await register(userData);
-    
+
     if (result.success) {
       navigate('/profile-setup');
     } else {
       setError(result.message);
     }
-    
+
     setLoading(false);
   };
+
+  const highlights = [
+    'Peer + mentor invitations',
+    'Premium question banks',
+    'Performance analytics'
+  ];
 
   return (
     <Box
       sx={{
         minHeight: '100vh',
-        background: `linear-gradient(135deg, ${alpha(theme.palette.primary.main, 0.1)} 0%, ${alpha(theme.palette.secondary.main, 0.1)} 100%)`,
+        backgroundColor: alpha(theme.palette.primary.main, 0.05),
         display: 'flex',
         alignItems: 'center',
-        py: 4
+        py: { xs: 4, md: 6 }
       }}
     >
-      <Container component="main" maxWidth="sm">
-        <Box sx={{ position: 'relative' }}>
-          <IconButton
-            onClick={() => navigate('/')}
-            sx={{
-              position: 'absolute',
-              top: -60,
-              left: 0,
-              color: 'primary.main'
-            }}
-          >
-            <ArrowBack />
-          </IconButton>
-          
-          <Paper
-            elevation={12}
-            sx={{
-              p: { xs: 3, sm: 5 },
-              borderRadius: 3,
-              background: 'rgba(255, 255, 255, 0.95)',
-              backdropFilter: 'blur(10px)'
-            }}
-          >
-            <Box textAlign="center" mb={4}>
-              <Typography
-                component="h1"
-                variant="h3"
-                sx={{
-                  fontWeight: 700,
-                  color: 'primary.main',
-                  mb: 1
-                }}
-              >
-                Join Us Today
-              </Typography>
-              <Typography variant="body1" color="text.secondary">
-                Create your account and start practicing interviews
-              </Typography>
-            </Box>
-
-            {error && (
-              <Alert
-                severity="error"
-                sx={{
-                  mb: 3,
-                  borderRadius: 2
-                }}
-              >
-                {error}
-              </Alert>
-            )}
-
-            {/* Google Sign Up Button */}
-            <Button
-              fullWidth
-              variant="outlined"
-              size="large"
-              onClick={handleGoogleSignUp}
-              startIcon={<Google />}
+      <Container maxWidth="md">
+        <Paper
+          elevation={12}
+          sx={{
+            borderRadius: 4,
+            overflow: 'hidden',
+            position: 'relative'
+          }}
+        >
+          <Grid container>
+            <Grid
+              item
+              xs={12}
+              md={5}
               sx={{
-                mb: 3,
-                py: 1.5,
-                borderColor: '#dadce0',
-                color: '#3c4043',
-                textTransform: 'none',
-                fontSize: '1rem',
-                fontWeight: 500,
-                '&:hover': {
-                  borderColor: '#dadce0',
-                  bgcolor: alpha('#000', 0.04)
-                }
+                bgcolor: alpha(theme.palette.primary.main, 0.08),
+                borderRight: { md: `1px solid ${alpha(theme.palette.primary.main, 0.1)}` },
+                p: { xs: 4, md: 5 }
               }}
             >
-              Continue with Google
-            </Button>
-
-            <Divider sx={{ my: 3 }}>
-              <Typography variant="body2" color="text.secondary">
-                or
+              <Typography variant="h5" sx={{ fontWeight: 700, mb: 1 }}>
+                Ready to level up?
               </Typography>
-            </Divider>
-
-            <Box component="form" onSubmit={handleSubmit}>
-              <TextField
-                margin="normal"
-                required
-                fullWidth
-                name="name"
-                label="Full Name"
-                value={formData.name}
-                onChange={handleChange}
-                InputProps={{
-                  startAdornment: (
-                    <InputAdornment position="start">
-                      <Person color="action" />
-                    </InputAdornment>
-                  ),
-                }}
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 4 }}>
+                Join a community obsessed with mastering interviews.
+              </Typography>
+              <Stack spacing={2}>
+                {highlights.map((item) => (
+                  <Stack direction="row" spacing={1.5} alignItems="center" key={item}>
+                    <Chip
+                      size="small"
+                      color="primary"
+                      label="•"
+                      sx={{ borderRadius: '50%', minWidth: 28, height: 28, fontSize: 18 }}
+                    />
+                    <Typography color="text.secondary">{item}</Typography>
+                  </Stack>
+                ))}
+              </Stack>
+            </Grid>
+            <Grid item xs={12} md={7} sx={{ p: { xs: 4, md: 5 }, position: 'relative' }}>
+              <IconButton
+                onClick={() => navigate('/')}
                 sx={{
-                  mb: 2,
-                  '& .MuiOutlinedInput-root': {
-                    borderRadius: 2
-                  }
-                }}
-              />
-              
-              <TextField
-                margin="normal"
-                required
-                fullWidth
-                name="email"
-                label="Email Address"
-                type="email"
-                value={formData.email}
-                onChange={handleChange}
-                InputProps={{
-                  startAdornment: (
-                    <InputAdornment position="start">
-                      <Email color="action" />
-                    </InputAdornment>
-                  ),
-                }}
-                sx={{
-                  mb: 2,
-                  '& .MuiOutlinedInput-root': {
-                    borderRadius: 2
-                  }
-                }}
-              />
-              
-              <TextField
-                margin="normal"
-                required
-                fullWidth
-                name="password"
-                label="Password"
-                type={showPassword ? 'text' : 'password'}
-                value={formData.password}
-                onChange={handleChange}
-                InputProps={{
-                  startAdornment: (
-                    <InputAdornment position="start">
-                      <Lock color="action" />
-                    </InputAdornment>
-                  ),
-                  endAdornment: (
-                    <InputAdornment position="end">
-                      <IconButton
-                        onClick={togglePasswordVisibility}
-                        edge="end"
-                        size="small"
-                      >
-                        {showPassword ? <VisibilityOff /> : <Visibility />}
-                      </IconButton>
-                    </InputAdornment>
-                  ),
-                }}
-                sx={{
-                  mb: 2,
-                  '& .MuiOutlinedInput-root': {
-                    borderRadius: 2
-                  }
-                }}
-              />
-              
-              <TextField
-                margin="normal"
-                required
-                fullWidth
-                name="confirmPassword"
-                label="Confirm Password"
-                type={showConfirmPassword ? 'text' : 'password'}
-                value={formData.confirmPassword}
-                onChange={handleChange}
-                InputProps={{
-                  startAdornment: (
-                    <InputAdornment position="start">
-                      <Lock color="action" />
-                    </InputAdornment>
-                  ),
-                  endAdornment: (
-                    <InputAdornment position="end">
-                      <IconButton
-                        onClick={toggleConfirmPasswordVisibility}
-                        edge="end"
-                        size="small"
-                      >
-                        {showConfirmPassword ? <VisibilityOff /> : <Visibility />}
-                      </IconButton>
-                    </InputAdornment>
-                  ),
-                }}
-                sx={{
-                  mb: 3,
-                  '& .MuiOutlinedInput-root': {
-                    borderRadius: 2
-                  }
-                }}
-              />
-
-              <Button
-                type="submit"
-                fullWidth
-                variant="contained"
-                size="large"
-                disabled={loading}
-                sx={{
-                  py: 1.5,
-                  fontSize: '1.1rem',
-                  fontWeight: 600,
-                  borderRadius: 2,
-                  textTransform: 'none',
-                  boxShadow: theme.shadows[4],
-                  '&:hover': {
-                    boxShadow: theme.shadows[8],
-                    transform: 'translateY(-1px)'
-                  },
-                  transition: 'all 0.3s ease'
+                  position: 'absolute',
+                  top: 16,
+                  right: 16
                 }}
               >
-                {loading ? 'Creating Account...' : 'Create Account'}
-              </Button>
+                <Close />
+              </IconButton>
 
-              <Box textAlign="center" mt={3}>
-                <Link
-                  component={RouterLink}
-                  to="/login"
-                  variant="body2"
+              <Box textAlign="left" mb={4}>
+                <Typography
+                  component="h1"
+                  variant="h4"
                   sx={{
-                    color: 'primary.main',
-                    textDecoration: 'none',
-                    fontWeight: 500,
-                    '&:hover': {
-                      textDecoration: 'underline'
-                    }
+                    fontWeight: 700,
+                    color: 'text.primary',
+                    mb: 1
                   }}
                 >
-                  Already have an account? Sign In
-                </Link>
+                  Create your account
+                </Typography>
+                <Typography variant="body1" color="text.secondary">
+                  Start practicing interviews in minutes.
+                </Typography>
               </Box>
-            </Box>
-          </Paper>
-        </Box>
+
+              {error && (
+                <Alert
+                  severity="error"
+                  sx={{
+                    mb: 3,
+                    borderRadius: 2
+                  }}
+                >
+                  {error}
+                </Alert>
+              )}
+
+              {/* Google Sign Up Button */}
+              <Box sx={{ mb: 3 }}>
+                <GoogleLogin
+                  onSuccess={handleGoogleSuccess}
+                  onError={handleGoogleError}
+                  size="large"
+                  width="100%"
+                  text="signup_with"
+                  shape="rectangular"
+                />
+              </Box>
+
+              <Divider sx={{ my: 3 }}>
+                <Typography variant="body2" color="text.secondary">
+                  or sign up with email
+                </Typography>
+              </Divider>
+
+              <Box component="form" onSubmit={handleSubmit}>
+                <TextField
+                  margin="normal"
+                  required
+                  fullWidth
+                  name="name"
+                  label="Full Name"
+                  value={formData.name}
+                  onChange={handleChange}
+                  InputProps={{
+                    startAdornment: (
+                      <InputAdornment position="start">
+                        <Person color="action" />
+                      </InputAdornment>
+                    ),
+                  }}
+                  sx={{
+                    mb: 2,
+                    '& .MuiOutlinedInput-root': {
+                      borderRadius: 2
+                    }
+                  }}
+                />
+
+                <TextField
+                  margin="normal"
+                  required
+                  fullWidth
+                  name="email"
+                  label="Email Address"
+                  type="email"
+                  value={formData.email}
+                  onChange={handleChange}
+                  InputProps={{
+                    startAdornment: (
+                      <InputAdornment position="start">
+                        <Email color="action" />
+                      </InputAdornment>
+                    ),
+                  }}
+                  sx={{
+                    mb: 2,
+                    '& .MuiOutlinedInput-root': {
+                      borderRadius: 2
+                    }
+                  }}
+                />
+
+                <TextField
+                  margin="normal"
+                  required
+                  fullWidth
+                  name="password"
+                  label="Password"
+                  type={showPassword ? 'text' : 'password'}
+                  value={formData.password}
+                  onChange={handleChange}
+                  InputProps={{
+                    startAdornment: (
+                      <InputAdornment position="start">
+                        <Lock color="action" />
+                      </InputAdornment>
+                    ),
+                    endAdornment: (
+                      <InputAdornment position="end">
+                        <IconButton
+                          onClick={togglePasswordVisibility}
+                          edge="end"
+                          size="small"
+                        >
+                          {showPassword ? <VisibilityOff /> : <Visibility />}
+                        </IconButton>
+                      </InputAdornment>
+                    ),
+                  }}
+                  sx={{
+                    mb: 2,
+                    '& .MuiOutlinedInput-root': {
+                      borderRadius: 2
+                    }
+                  }}
+                />
+
+                <TextField
+                  margin="normal"
+                  required
+                  fullWidth
+                  name="confirmPassword"
+                  label="Confirm Password"
+                  type={showConfirmPassword ? 'text' : 'password'}
+                  value={formData.confirmPassword}
+                  onChange={handleChange}
+                  InputProps={{
+                    startAdornment: (
+                      <InputAdornment position="start">
+                        <Lock color="action" />
+                      </InputAdornment>
+                    ),
+                    endAdornment: (
+                      <InputAdornment position="end">
+                        <IconButton
+                          onClick={toggleConfirmPasswordVisibility}
+                          edge="end"
+                          size="small"
+                        >
+                          {showConfirmPassword ? <VisibilityOff /> : <Visibility />}
+                        </IconButton>
+                      </InputAdornment>
+                    ),
+                  }}
+                  sx={{
+                    mb: 3,
+                    '& .MuiOutlinedInput-root': {
+                      borderRadius: 2
+                    }
+                  }}
+                />
+
+                <Button
+                  type="submit"
+                  fullWidth
+                  variant="contained"
+                  size="large"
+                  disabled={loading}
+                  sx={{
+                    py: 1.5,
+                    fontSize: '1.1rem',
+                    fontWeight: 600,
+                    borderRadius: 2,
+                    textTransform: 'none',
+                    boxShadow: theme.shadows[4],
+                    '&:hover': {
+                      boxShadow: theme.shadows[8],
+                      transform: 'translateY(-1px)'
+                    },
+                    transition: 'all 0.3s ease'
+                  }}
+                >
+                  {loading ? 'Creating Account...' : 'Create Account'}
+                </Button>
+
+                <Box textAlign="center" mt={3}>
+                  <Link
+                    component={RouterLink}
+                    to="/login"
+                    variant="body2"
+                    sx={{
+                      color: 'primary.main',
+                      textDecoration: 'none',
+                      fontWeight: 500,
+                      '&:hover': {
+                        textDecoration: 'underline'
+                      }
+                    }}
+                  >
+                    Already have an account? Sign In
+                  </Link>
+                </Box>
+              </Box>
+            </Grid>
+          </Grid>
+        </Paper>
       </Container>
     </Box>
   );

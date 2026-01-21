@@ -1,9 +1,9 @@
 import React from 'react';
-import { 
-  AppBar, 
-  Toolbar, 
-  Typography, 
-  Button, 
+import {
+  AppBar,
+  Toolbar,
+  Typography,
+  Button,
   Box,
   Avatar,
   Menu,
@@ -13,7 +13,7 @@ import {
   Chip,
   Divider
 } from '@mui/material';
-import { 
+import {
   Dashboard as DashboardIcon,
   Search as SearchIcon,
   History as HistoryIcon,
@@ -21,7 +21,8 @@ import {
   Logout as LogoutIcon,
   Notifications as NotificationsIcon,
   Security as SecurityIcon,
-  AdminPanelSettings as AdminIcon
+  AdminPanelSettings as AdminIcon,
+  Mail as InvitationsIcon
 } from '@mui/icons-material';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
@@ -50,24 +51,28 @@ const Navbar = () => {
   const isActive = (path) => location.pathname === path;
 
   return (
-    <AppBar 
-      position="sticky" 
+    <AppBar
+      position="sticky"
       elevation={0}
-      sx={{ 
-        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-        borderBottom: '2px solid rgba(255,255,255,0.1)',
+      sx={{
+        background: 'rgba(102, 126, 234, 0.85)',
+        backdropFilter: 'blur(20px)',
+        WebkitBackdropFilter: 'blur(20px)',
+        borderBottom: '1px solid rgba(255,255,255,0.18)',
+        boxShadow: '0 8px 32px 0 rgba(102, 126, 234, 0.2)',
         borderRadius: 0,
         top: 0,
-        zIndex: (theme) => theme.zIndex.appBar
+        zIndex: (theme) => theme.zIndex.appBar,
+        transition: 'all 0.3s ease'
       }}
     >
       <Toolbar sx={{ minHeight: '70px !important', display: 'flex', alignItems: 'center' }}>
         {/* Left: Logo */}
         <Box sx={{ display: 'flex', alignItems: 'center', width: { xs: 'auto', md: '33%' } }}>
-          <Typography 
-            variant="h5" 
-            component="div" 
-            sx={{ 
+          <Typography
+            variant="h5"
+            component="div"
+            sx={{
               fontWeight: 'bold',
               background: 'linear-gradient(45deg, #FE6B8B 30%, #FF8E53 90%)',
               WebkitBackgroundClip: 'text',
@@ -81,55 +86,69 @@ const Navbar = () => {
 
         {/* Center: Primary Nav */}
         <Box sx={{ flexGrow: 1, display: 'flex', justifyContent: 'center', gap: 1 }}>
-          <Button 
-              color="inherit" 
-              startIcon={<DashboardIcon />}
-              onClick={() => navigate('/dashboard')}
-              variant={isActive('/dashboard') ? 'contained' : 'text'}
-              sx={{ 
-                borderRadius: 2,
-                textTransform: 'none',
-                bgcolor: isActive('/dashboard') ? 'rgba(255,255,255,0.2)' : 'transparent',
-                '&:hover': { bgcolor: 'rgba(255,255,255,0.1)' }
-              }}
-            >
-              Dashboard
-            </Button>
-          <Button 
-              color="inherit" 
-              startIcon={<SearchIcon />}
-              onClick={() => navigate('/find-match')}
-              variant={isActive('/find-match') ? 'contained' : 'text'}
-              sx={{ 
-                borderRadius: 2,
-                textTransform: 'none',
-                bgcolor: isActive('/find-match') ? 'rgba(255,255,255,0.2)' : 'transparent',
-                '&:hover': { bgcolor: 'rgba(255,255,255,0.1)' }
-              }}
-            >
-              Find Match
-            </Button>
-          <Button 
-              color="inherit" 
-              startIcon={<HistoryIcon />}
-              onClick={() => navigate('/history')}
-              variant={isActive('/history') ? 'contained' : 'text'}
-              sx={{ 
-                borderRadius: 2,
-                textTransform: 'none',
-                bgcolor: isActive('/history') ? 'rgba(255,255,255,0.2)' : 'transparent',
-                '&:hover': { bgcolor: 'rgba(255,255,255,0.1)' }
-              }}
-            >
-              History
-            </Button>
+          <Button
+            color="inherit"
+            startIcon={<DashboardIcon />}
+            onClick={() => navigate('/dashboard')}
+            variant={isActive('/dashboard') ? 'contained' : 'text'}
+            sx={{
+              borderRadius: 2,
+              textTransform: 'none',
+              bgcolor: isActive('/dashboard') ? 'rgba(255,255,255,0.2)' : 'transparent',
+              '&:hover': { bgcolor: 'rgba(255,255,255,0.1)' }
+            }}
+          >
+            Dashboard
+          </Button>
+          <Button
+            color="inherit"
+            startIcon={<SearchIcon />}
+            onClick={() => navigate('/find-match')}
+            variant={isActive('/find-match') ? 'contained' : 'text'}
+            sx={{
+              borderRadius: 2,
+              textTransform: 'none',
+              bgcolor: isActive('/find-match') ? 'rgba(255,255,255,0.2)' : 'transparent',
+              '&:hover': { bgcolor: 'rgba(255,255,255,0.1)' }
+            }}
+          >
+            Find Match
+          </Button>
+          <Button
+            color="inherit"
+            startIcon={<InvitationsIcon />}
+            onClick={() => navigate('/invitations')}
+            variant={isActive('/invitations') ? 'contained' : 'text'}
+            sx={{
+              borderRadius: 2,
+              textTransform: 'none',
+              bgcolor: isActive('/invitations') ? 'rgba(255,255,255,0.2)' : 'transparent',
+              '&:hover': { bgcolor: 'rgba(255,255,255,0.1)' }
+            }}
+          >
+            Invitations
+          </Button>
+          <Button
+            color="inherit"
+            startIcon={<HistoryIcon />}
+            onClick={() => navigate('/history')}
+            variant={isActive('/history') ? 'contained' : 'text'}
+            sx={{
+              borderRadius: 2,
+              textTransform: 'none',
+              bgcolor: isActive('/history') ? 'rgba(255,255,255,0.2)' : 'transparent',
+              '&:hover': { bgcolor: 'rgba(255,255,255,0.1)' }
+            }}
+          >
+            History
+          </Button>
           {user?.role === 'admin' && (
-            <Button 
-              color="inherit" 
+            <Button
+              color="inherit"
               startIcon={<AdminIcon />}
               onClick={() => navigate('/admin')}
               variant={isActive('/admin') ? 'contained' : 'text'}
-              sx={{ 
+              sx={{
                 borderRadius: 2,
                 textTransform: 'none',
                 bgcolor: isActive('/admin') ? 'rgba(255,255,255,0.2)' : 'transparent',
@@ -144,14 +163,14 @@ const Navbar = () => {
         {/* Right: User Actions */}
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, width: { xs: 'auto', md: '33%' }, justifyContent: 'flex-end' }}>
           {user?.isPremium ? (
-            <Chip 
-              label="Premium" 
-              size="small" 
-              sx={{ 
-                bgcolor: 'gold', 
+            <Chip
+              label="Premium"
+              size="small"
+              sx={{
+                bgcolor: 'gold',
                 color: 'black',
                 fontWeight: 'bold'
-              }} 
+              }}
             />
           ) : (
             <Button
@@ -172,13 +191,13 @@ const Navbar = () => {
               Upgrade to Premium
             </Button>
           )}
-          
+
           <IconButton color="inherit">
             <Badge badgeContent={0} color="error">
               <NotificationsIcon />
             </Badge>
           </IconButton>
-          
+
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
             <Box sx={{ textAlign: 'right', display: { xs: 'none', sm: 'block' } }}>
               <Typography variant="body2" sx={{ fontWeight: 'medium' }}>
@@ -188,11 +207,11 @@ const Navbar = () => {
                 {user?.domain}
               </Typography>
             </Box>
-            <Avatar 
+            <Avatar
               src={user?.profilePicture ? `${API_BASE_URL}${user.profilePicture}` : ''}
               onClick={handleMenu}
-              sx={{ 
-                cursor: 'pointer', 
+              sx={{
+                cursor: 'pointer',
                 bgcolor: 'secondary.main',
                 border: '2px solid rgba(255,255,255,0.3)',
                 width: 45,
@@ -202,7 +221,7 @@ const Navbar = () => {
               {!user?.profilePicture && user?.name?.charAt(0).toUpperCase()}
             </Avatar>
           </Box>
-          
+
           <Menu
             anchorEl={anchorEl}
             open={Boolean(anchorEl)}

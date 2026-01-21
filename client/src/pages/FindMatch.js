@@ -269,8 +269,8 @@ const FindMatch = () => {
       setSelectedMatch(null);
       setSelectedQuestions([]);
       
-      // Navigate to dashboard focusing Sent Invitations and pass invitation via state
-      navigate('/dashboard?focus=sent-invitations', { state: { recentlySentInvitation: response.data.invitation } });
+      // Navigate to invitations page to see sent invitations
+      navigate('/invitations');
       
     } catch (error) {
       console.error('Error sending invitation:', error);
