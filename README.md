@@ -2,13 +2,13 @@
 
 A comprehensive full-stack platform for conducting mock interviews between peers, featuring real-time video calls with WebRTC, Socket.io-powered live invitations, domain-specific question banks, and integrated payment system for premium features.
 
-## 🌐 Live Applications
+## Live Applications
 
-- **🚀 Main Platform**: [https://mockwithpeers.vercel.app/](https://mockwithpeers.vercel.app/)
-- **🔐 Admin Panel**: [https://mockadmin.vercel.app/](https://mockadmin.vercel.app/)
-- **🔧 Backend API**: [https://mockinterview-bdve.onrender.com](https://mockinterview-bdve.onrender.com)
+- **Main Platform**: [https://mockwithpeers.vercel.app/](https://mockwithpeers.vercel.app/)
+- **Admin Panel**: [https://mockadmin.vercel.app/](https://mockadmin.vercel.app/)
+- **Backend API**: [https://mockinterview-bdve.onrender.com](https://mockinterview-bdve.onrender.com)
 
-## 📋 Table of Contents
+## Table of Contents
 
 - [Features](#-features)
 - [Tech Stack](#-tech-stack)
@@ -29,7 +29,7 @@ A comprehensive full-stack platform for conducting mock interviews between peers
 
 ## Features
 
-### 🎥 Core Interview Features
+###  Core Interview Features
 - **Real-time Video Interviews** - WebRTC-powered peer-to-peer video calls with audio/video controls
 - **Live Interview Invitations** - Socket.io-based real-time invitation system with instant notifications
 - **Smart Peer Matching** - Browse and select interview partners based on domain, skills, and experience
