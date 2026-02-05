@@ -1,4 +1,4 @@
-# 🎯 MockInterview - Peer-to-Peer Interview Platform
+#  MockInterview - Peer-to-Peer Interview Platform
 
 A comprehensive full-stack platform for conducting mock interviews between peers, featuring real-time video calls with WebRTC, Socket.io-powered live invitations, domain-specific question banks, and integrated payment system for premium features.
 
@@ -27,7 +27,7 @@ A comprehensive full-stack platform for conducting mock interviews between peers
 - [License](#-license)
 - [Author](#-author)
 
-## ✨ Features
+## Features
 
 ### 🎥 Core Interview Features
 - **Real-time Video Interviews** - WebRTC-powered peer-to-peer video calls with audio/video controls
@@ -39,7 +39,7 @@ A comprehensive full-stack platform for conducting mock interviews between peers
 - **Performance Feedback System** - Rate partners, provide detailed feedback, and skill-based assessments
 - **Interview History** - Complete history of past interviews with feedback and ratings
 
-### 👤 User Management
+###  User Management
 - **Secure Authentication** - JWT-based authentication with bcrypt password hashing
 - **Profile Setup Wizard** - Guided profile completion with skills, domain, experience, and gender
 - **Profile Pictures** - Upload and manage profile pictures with Multer
@@ -49,7 +49,7 @@ A comprehensive full-stack platform for conducting mock interviews between peers
 - **Password Management** - Change password and forgot password functionality with reset tokens
 - **Account Deletion** - Self-service account deletion with data cleanup
 
-### 🔧 Admin Features
+###  Admin Features
 - **Comprehensive Dashboard** - User statistics, interview metrics, and platform analytics
 - **User Management** - View, search, filter, promote, demote, and delete users
 - **Question Bank Management** - Full CRUD operations for interview questions with domain categorization
@@ -58,7 +58,7 @@ A comprehensive full-stack platform for conducting mock interviews between peers
 - **Payment Tracking** - Monitor premium subscriptions, payment history, and revenue analytics
 - **Database Insights** - Real-time collection counts and database health monitoring
 
-### 💳 Payment & Premium
+### Payment & Premium
 - **Flexible Pricing Plans** - Monthly (₹299) and Yearly (₹1999) with ₹1589 annual savings
 - **Razorpay Integration** - Secure payment gateway with order creation and verification
 - **Development Mode** - Mock payment system for testing without actual transactions
@@ -67,7 +67,7 @@ A comprehensive full-stack platform for conducting mock interviews between peers
 - **Auto-expiry Management** - Automatic premium status expiry tracking
 - **Payment Verification** - Signature verification for secure payment processing
 
-## 🛠 Tech Stack
+##  Tech Stack
 
 ### Frontend (Client & Admin Panel)
 - **React.js 18.2.0** - Modern UI library with hooks and functional components
@@ -112,7 +112,7 @@ A comprehensive full-stack platform for conducting mock interviews between peers
 - **Concurrently 8.2.2** - Run multiple npm scripts simultaneously
 - **Git** - Version control
 
-## 🏗 System Architecture
+##  System Architecture
 
 ```
 ┌─────────────────────────────────────────────────────────────────────┐
@@ -196,7 +196,7 @@ Data Flow:
 5. File Upload: Client → Multer → Local Storage → Database URL Reference
 ```
 
-## 📁 Project Structure
+##  Project Structure
 
 ```
 mockinterview/
@@ -289,7 +289,7 @@ mockinterview/
 └── README.md                        # This file
 ```
 
-## 🚀 Installation
+## Installation
 
 ### Prerequisites
 - **Node.js** v18 or higher ([Download](https://nodejs.org/))
